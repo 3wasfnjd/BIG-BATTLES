@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#caa777">
+  <meta name="description" content="BIG BATTLES — أبطال صغار، معارك كبيرة. لعبة جيوش صحراوية بالسحب يمينًا ويسارًا.">
+  <title>BIG BATTLES · معارك كبيرة</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js","three/addons/":"./vendor/addons/"}}</script>
+</head>
+<body>
+  <main id="game" aria-label="ساحة معارك كبيرة">
+    <canvas id="scene" aria-label="اسحب يمينًا أو يسارًا لتحريك الجيش"></canvas>
+    <div id="hud" hidden>
+      <div class="army-meter"><svg viewBox="0 0 36 30" aria-hidden="true"><circle cx="18" cy="7" r="5"/><circle cx="6" cy="11" r="4"/><circle cx="30" cy="11" r="4"/><path d="M11 29V20a7 7 0 0 1 14 0v9M0 29V22a6 6 0 0 1 10-4v11M26 29V18a6 6 0 0 1 10 4v7"/></svg><strong id="army-count">6</strong></div>
+      <div class="stage-meter"><span>المرحلة ١</span><div class="progress-track"><i id="progress"></i></div></div>
+      <button id="pause" aria-label="إيقاف مؤقت">Ⅱ</button>
+    </div>
+    <div id="boss-ui" hidden><span>عملاق الحصن</span><div><i id="boss-health"></i></div></div>
+    <div id="gate-feedback" aria-live="polite"></div>
+    <div id="start" class="screen">
+      <div class="brand"><div class="brand-mark" aria-hidden="true">✦</div><h1><span>BIG</span> BATTLES</h1><p class="arabic-name">معارك كبيرة</p><p class="tagline" dir="ltr">SMALL HEROES · BIG BATTLES</p></div>
+      <div class="start-prompt"><p id="load-status">جارٍ التجهيز</p><div id="load-line"><i></i></div><span>أبطال صغار • معارك كبيرة</span></div>
+    </div>
+    <div id="result" class="screen result-screen" hidden><div class="result-mark">✦</div><h2 id="result-title">انتصار</h2><p id="result-note"></p><button id="replay">إعادة</button></div>
+    <div id="paused" class="screen pause-screen" hidden><h2>توقف مؤقت</h2><p>المس للمتابعة</p></div>
+    <pre id="debug" hidden dir="ltr"></pre>
+  </main>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
