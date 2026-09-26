@@ -97,4 +97,12 @@ Development diagnostics are **off** by default. Use `?debug=1` for FPS, units, p
 
 `npm test` covers complete stage runs through all five encounters, growth and alternate upgrade routes, formation bounds at 5–320 units, one-shot gate selection, pool reuse, projectile deaths, pause/reset/defeat, pointer lifecycle, and boss telegraph/attack cadence. Simulation tests do not measure rendering FPS or prove Safari compatibility.
 
-Browser verification results are recorded after testing the deployed build. Real iPhone Safari and Android hardware testing is still required; no mobile-device FPS promise is made. Audio and final GLB art are intentionally absent. Next step: device playtesting to tune camera/drag feel, gate readability and encounter difficulty, then integrate one optimized recruit GLB before replacing the rest.
+Validation on 2026-09-26:
+
+- All 12 Node tests pass, including a generated binary GLB parsed by the real loader, replacement batches, 320-player / 420-enemy scene updates, camera containment at portrait and landscape ratios, and complete playable simulation routes.
+- Growth route: 89.8 simulated seconds, peak 320, 312 survivors, zero projectile-pool misses. Alternate upgrade route: 89.1 seconds, peak 206, 191 survivors. These are simulation measurements, **not device FPS**.
+- GitHub Pages deployment succeeded and the HTML, styling and JavaScript entry loaded in the cloud Chrome browser.
+- The browser's GPU/WebGL is disabled (`GL_RENDERER = Disabled`, context creation failure). Therefore actual 3D frame rendering, real mouse/touch gameplay, replay button interaction, visual inspection and FPS could **not** be verified there. Pointer behavior was tested at the input-system level only. No claim of a console-error-free 3D session is made.
+- Camera tests exposed clipped rear rows in large armies; the camera now backs away with formation depth. Beast/boss health was increased after simulation showed they could die before attacking. The revised route test requires a beast attack and the boss's third heavy attack before victory.
+
+ Real iPhone Safari and Android hardware testing is still required; no mobile-device FPS promise is made. Audio and final GLB art are intentionally absent. Next step: device playtesting to tune camera/drag feel, gate readability and encounter difficulty, then integrate one optimized recruit GLB before replacing the rest.

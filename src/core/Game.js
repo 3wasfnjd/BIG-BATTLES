@@ -7,7 +7,7 @@ import { CharacterVisualFactory } from '../rendering/CharacterVisualFactory.js';
 import { EnvironmentFactory } from '../rendering/EnvironmentFactory.js';
 import { GateRenderer, gateLabel } from '../rendering/GateRenderer.js';
 import { EffectsRenderer } from '../rendering/EffectsRenderer.js';
-import { ease } from './Config.js';
+import { CameraRig } from '../rendering/CameraRig.js';
 export class Game {
   constructor() {
     const $ = id => document.getElementById(id);
@@ -27,7 +27,7 @@ export class Game {
     this.visuals = new CharacterVisualFactory(this.scene);
     this.environment = new EnvironmentFactory(this.scene, this.sim.data.length);
     this.gateRenderer = new GateRenderer(this.scene, this.sim.gates.gates);
-    this.cameraZ = 0; this.viewDepth = this.sim.army.depth; this.feedbackTimer = 0; this.uiTimer = 0; this.sceneTime = 0; this.lastCount = -1;
+    this.cameraRig = new CameraRig(this.camera); this.cameraRig.reset(this.sim.army.depth); this.feedbackTimer = 0; this.uiTimer = 0; this.sceneTime = 0; this.lastCount = -1;
     this.input = new InputSystem(this.ui.game, () => this.startOrResume(), x => { if (this.sim.state === 'playing') this.sim.army.targetX = x; }, () => this.sim.army.center.x);
     this.ui.pause.addEventListener('click', () => this.pause());
     this.ui.replay.addEventListener('click', event => { event.stopPropagation(); this.replay(); });
@@ -52,7 +52,7 @@ export class Game {
   pause() { if (this.sim.state === 'playing') { this.sim.state = 'paused'; this.ui.paused.hidden = false; this.input.reset(); } }
   replay() {
     this.sim.reset(); this.effects.clear(); this.input.reset(); this.gateRenderer.reset(this.sim.gates.gates);
-    this.cameraZ = 0; this.viewDepth = this.sim.army.depth; this.feedbackTimer = 0; this.lastCount = -1;
+    this.cameraRig.reset(this.sim.army.depth); this.feedbackTimer = 0; this.lastCount = -1;
     this.ui.result.hidden = true; this.ui.paused.hidden = true; this.ui['boss-ui'].hidden = true; this.ui['gate-feedback'].classList.remove('show');
     this.startOrResume(); this.loop.resetClock();
   }
@@ -68,11 +68,7 @@ export class Game {
   }
   render(dt, raw) {
     const { army, stage } = this.sim; this.sceneTime += dt;
-    this.cameraZ += (army.center.z - this.cameraZ) * ease(8, dt);
-    this.viewDepth += (army.depth - this.viewDepth) * ease(2, dt);
-    const height = Math.max(20, 12 / this.camera.aspect) + this.viewDepth * 0.3;
-    this.camera.position.set(0, height, -this.cameraZ + 17 + this.viewDepth * 0.32);
-    this.camera.lookAt(0, 0, -this.cameraZ - 10 + this.viewDepth * 0.15);
+    this.cameraRig.update(army, dt);
     this.environment.update(army.center.z); this.gateRenderer.update(army.center.z);
     const animDt = this.sim.state === 'paused' ? 0 : dt;
     this.visuals.update(army.units, stage.enemies, this.sceneTime, animDt);

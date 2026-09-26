@@ -87,3 +87,27 @@ test('boss telegraphs normal attacks and every third smash with bounded victims'
   for (let i = 0; i < 420; i++) enemies.update(1 / 60, encounter, army);
   assert.ok(boss.attackCount >= 3); assert.ok(hits > 0); assert.ok(hits <= boss.attackCount * 12);
 });
+
+test('boss survives long enough to demonstrate a heavy smash on the upgrade route', () => {
+  const sim = new Simulation(); sim.start(); let bossAttacks = 0, beastAttacks = 0;
+  for (let i = 0; i < 60 * 180 && sim.state === 'playing'; i++) {
+    sim.army.targetX = 2; sim.update(1 / 60);
+    for (const enemy of sim.stage.enemies) {
+      if (enemy.type === 'giantBoss') bossAttacks = Math.max(bossAttacks, enemy.attackCount);
+      if (enemy.type === 'desertBeast') beastAttacks = Math.max(beastAttacks, enemy.attackCount);
+    }
+  }
+  assert.equal(sim.state, 'victory'); assert.ok(beastAttacks >= 1); assert.ok(bossAttacks >= 3);
+});
+
+test('portrait and landscape camera contain full formation at both corridor edges', async () => {
+  const THREE = await import('three'); const { cameraPose } = await import('../src/rendering/CameraRig.js');
+  for (const aspect of [390 / 844, 430 / 932, 844 / 390]) for (const count of [6, 50, 200, 320]) {
+    const army = new PlayerArmy(count), camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 160);
+    const pose = cameraPose(0, army.depth, aspect); camera.position.set(0, pose.height, pose.z); camera.lookAt(0, 0, pose.targetZ); camera.updateMatrixWorld();
+    for (const side of [-1, 1]) for (const unit of army.units) for (const y of [0, 1.7]) {
+      const point = new THREE.Vector3(unit.x + side * army.limit, y, -unit.z).project(camera);
+      assert.ok(Math.abs(point.x) < 0.95 && Math.abs(point.y) < 0.88, `count=${count} aspect=${aspect} point=${point.toArray()}`);
+    }
+  }
+});
