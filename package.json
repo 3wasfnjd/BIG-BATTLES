@@ -7,6 +7,7 @@
     "test": "node tools/release.mjs --check && node --test tests/*.test.js",
     "benchmark": "node tools/benchmark.mjs",
     "models": "node tools/generate-models.mjs && node tools/art/package-recruit.mjs",
+    "models:quality": "node tools/art/package-recruit.mjs --quality",
     "serve": "python3 -m http.server 8080",
     "vendor": "node tools/vendor.mjs",
     "release": "node tools/release.mjs"

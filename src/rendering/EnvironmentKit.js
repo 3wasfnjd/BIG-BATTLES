@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { GeometryBuilder } from './PlaceholderFactory.js';
+import { chamferedStone } from './QualityGeometry.js';
 
 // Reusable decorative meshes: no textures, downloaded models or gameplay collision.
-export function createEnvironmentKit() {
+export function createEnvironmentKit(quality = false) {
   const box = new THREE.BoxGeometry(), tile = new THREE.PlaneGeometry().rotateX(-Math.PI / 2);
   const rock = new THREE.DodecahedronGeometry(1), trunk = new THREE.CylinderGeometry(0.17, 0.25, 1, 6), cone = new THREE.ConeGeometry(1, 1, 3);
   const kit = new Map();
@@ -12,7 +13,15 @@ export function createEnvironmentKit() {
     fill(b, add); const geometry = b.finish(); geometry.computeBoundingSphere(); kit.set(name, geometry);
   };
   build('road', b => {
-    b.add(tile, '#c4a47b', 0, -.032, -8, 14, 1, 16);
+    b.add(tile, quality ? '#aa9578' : '#c4a47b', 0, -.032, -8, 14, 1, 16);
+    if (quality) {
+      const stone=chamferedStone(), palette=['#d8c8ab','#ddcdb0','#d6c7ab','#dacaae'];
+      for (let row=0;row<8;row++) for (let col=0;col<(row%2?8:7);col++) {
+        const left=Math.max(-7,-7+col*2-(row%2)),right=Math.min(7,-5+col*2-(row%2));
+        b.add(stone,palette[(row*5+col*7)%4],(left+right)/2,-.062,-row*2-1,right-left-.043,.12,1.956);
+      }
+      stone.dispose(); return;
+    }
     for (let row = 0; row < 8; row++) for (let col = 0; col < 7; col++) {
       b.add(tile, ['#d1b78f', '#d9bd95', '#ceb087'][(row * 5 + col * 7) % 3], -6 + col * 2, -.0045, -row * 2 - 1, 1.97, 1, 1.97);
     }

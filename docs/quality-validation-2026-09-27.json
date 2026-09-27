@@ -1,0 +1,190 @@
+{
+  "date": "2026-09-27T17:13:16.296Z",
+  "kind": "CPU simulation + scene/matrix updates; no WebGL renderer",
+  "visualProfile": "quality-study",
+  "runtime": "v24.19.0",
+  "platform": "linux/x64",
+  "cpu": "INTEL(R) XEON(R) PLATINUM 8573C",
+  "realDeviceFPS": null,
+  "webGLFPS": null,
+  "webGLLimitation": "Available cloud Chrome reports GL_RENDERER Disabled; no GPU frame rendering was measured.",
+  "method": "Five sustained cases. Real combat/upgrades and animated GLB crowd poses. Health raised to 100000 only to maintain population. 240 warmup ticks + 1200 measured fixed 60 Hz ticks per case. No gates/canvas text in this CPU harness.",
+  "cases": [
+    {
+      "players": 50,
+      "enemies": 50,
+      "simultaneousUnits": 100,
+      "simulationMs": {
+        "median": 0.0075,
+        "p95": 0.0266,
+        "max": 0.3045
+      },
+      "sceneUpdateMs": {
+        "median": 0.0685,
+        "p95": 0.1438,
+        "max": 2.5252
+      },
+      "totalCpuMs": {
+        "median": 0.0772,
+        "p95": 0.1664,
+        "max": 2.5315
+      },
+      "projectilePeak": 79,
+      "projectileMisses": 0,
+      "effectMisses": 0,
+      "visibleMeshesBeforeFrustumCulling": 47
+    },
+    {
+      "players": 100,
+      "enemies": 100,
+      "simultaneousUnits": 200,
+      "simulationMs": {
+        "median": 0.0113,
+        "p95": 0.0395,
+        "max": 1.9357
+      },
+      "sceneUpdateMs": {
+        "median": 0.1148,
+        "p95": 0.2257,
+        "max": 1.8512
+      },
+      "totalCpuMs": {
+        "median": 0.1282,
+        "p95": 0.2647,
+        "max": 2.1945
+      },
+      "projectilePeak": 158,
+      "projectileMisses": 0,
+      "effectMisses": 0,
+      "visibleMeshesBeforeFrustumCulling": 48
+    },
+    {
+      "players": 200,
+      "enemies": 200,
+      "simultaneousUnits": 400,
+      "simulationMs": {
+        "median": 0.0208,
+        "p95": 0.0526,
+        "max": 2.545
+      },
+      "sceneUpdateMs": {
+        "median": 0.2138,
+        "p95": 0.4395,
+        "max": 2.5323
+      },
+      "totalCpuMs": {
+        "median": 0.2406,
+        "p95": 0.4867,
+        "max": 2.7782
+      },
+      "projectilePeak": 285,
+      "projectileMisses": 0,
+      "effectMisses": 1040,
+      "visibleMeshesBeforeFrustumCulling": 48
+    },
+    {
+      "players": 320,
+      "enemies": 320,
+      "simultaneousUnits": 640,
+      "simulationMs": {
+        "median": 0.0451,
+        "p95": 0.0973,
+        "max": 0.4973
+      },
+      "sceneUpdateMs": {
+        "median": 0.328,
+        "p95": 0.6003,
+        "max": 1.7526
+      },
+      "totalCpuMs": {
+        "median": 0.383,
+        "p95": 0.6745,
+        "max": 1.8005
+      },
+      "projectilePeak": 404,
+      "projectileMisses": 0,
+      "effectMisses": 4373,
+      "visibleMeshesBeforeFrustumCulling": 48
+    },
+    {
+      "players": 320,
+      "enemies": 420,
+      "simultaneousUnits": 740,
+      "simulationMs": {
+        "median": 0.0645,
+        "p95": 0.1517,
+        "max": 0.7527
+      },
+      "sceneUpdateMs": {
+        "median": 0.3666,
+        "p95": 0.9181,
+        "max": 2.5984
+      },
+      "totalCpuMs": {
+        "median": 0.4421,
+        "p95": 1.0717,
+        "max": 2.6499
+      },
+      "projectilePeak": 403,
+      "projectileMisses": 0,
+      "effectMisses": 4347,
+      "visibleMeshesBeforeFrustumCulling": 48
+    }
+  ],
+  "environment": {
+    "original": {
+      "geometryBytes": 77252,
+      "instanceBytes": 15616
+    },
+    "study": {
+      "geometryBytes": 324356,
+      "instanceBytes": 15616
+    }
+  },
+  "cameraProjection": {
+    "method": "Mathematical projection of a 1.2427m vertical segment at formation mid-depth; 390x844 CSS viewport. Not a browser screenshot or an FPS measurement.",
+    "samples": [
+      {
+        "count": 6,
+        "originalHeightCSSPx": 19.2,
+        "studyHeightCSSPx": 30.6
+      },
+      {
+        "count": 32,
+        "originalHeightCSSPx": 18,
+        "studyHeightCSSPx": 31.3
+      },
+      {
+        "count": 50,
+        "originalHeightCSSPx": 17.3,
+        "studyHeightCSSPx": 31.7
+      },
+      {
+        "count": 100,
+        "originalHeightCSSPx": 16.6,
+        "studyHeightCSSPx": 29.3
+      },
+      {
+        "count": 200,
+        "originalHeightCSSPx": 15.4,
+        "studyHeightCSSPx": 23
+      },
+      {
+        "count": 320,
+        "originalHeightCSSPx": 13.9,
+        "studyHeightCSSPx": 21.2
+      }
+    ]
+  },
+  "asset": {
+    "triangles": 3384,
+    "bytes": 263560,
+    "materials": 1,
+    "textures": 0,
+    "vertices": 3881,
+    "bones": 7,
+    "clips": 5,
+    "acceptedAsFinalArt": false,
+    "source": "Higgsfield scripted Blender workshop revision 4; no Meshy generation"
+  }
+}

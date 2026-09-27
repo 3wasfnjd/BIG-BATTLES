@@ -19,3 +19,11 @@ The runtime `assets/models/*.glb` files remain lightweight animated prototypes. 
 Run `npm run models` to rebuild the current six game assets, including the workshop recruit. The game still uses the simple green procedural recruit if the GLB fails to load. The new recruit shares cached poses across crowds; it adds no per-soldier skeleton.
 
 The workshop render was inspected in Eevee and the actual packaged GLB was checked through the game's loader and offline projection. This remains a draft with limited rigid animation and simplified folds, eyes and equipment; it is not an approved final likeness. Real phone rendering and performance remain unverified.
+
+## Quality study, workshop revision 4
+
+`tools/art/quality_recruit.py` edits the settled revision 3 once. It reshapes the ghutra's rear silhouette, adds rear vest details and eye rims, then bakes contact occlusion into vertex colors. Revision 4 was rendered from front/back in Eevee and visually inspected. `art/reviews/recruit-quality-front.png` and `recruit-quality-back.png` are those renders, not browser screenshots. This test remains visibly primitive in the face, clothing, hands and equipment; it was **not accepted as production-quality art**.
+
+`sources/recruit-quality-workshop.glb` is the exact 220,992-byte workshop source. `npm run models:quality` produces `assets/models/quality/recruit.glb` (263,560 bytes, 3,384 triangles, 3,881 vertices, two meshes sharing one material, zero textures, seven rigid joints and five clips). It deliberately uses a separate path; the approved runtime replacement contract and original six files remain intact. Only `?quality=1` uses this candidate.
+
+The concrete next art task is described in [production/RECRUIT-PRODUCTION-BRIEF.md](production/RECRUIT-PRODUCTION-BRIEF.md) and [production/quality-contract.json](production/quality-contract.json). Numerical correctness alone does not establish visual quality. This study is not a Meshy output; no image-to-3D generation was submitted.

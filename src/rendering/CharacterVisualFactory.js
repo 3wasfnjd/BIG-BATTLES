@@ -3,15 +3,17 @@ import { PlaceholderFactory } from './PlaceholderFactory.js';
 import { AssetManager } from '../core/AssetManager.js';
 import { CHARACTERS } from '../data/characters.js';
 import { CONFIG } from '../core/Config.js';
+import { softDirectionalShadow } from './QualityGeometry.js';
 const CORPSE_LIMIT = 32;
 export class CharacterVisualFactory {
-  constructor(scene, { loadModels = true } = {}) {
+  constructor(scene, { loadModels = true, definitions = CHARACTERS, quality = false } = {}) {
+    this.definitions = definitions;
     this.scene = scene; this.assets = new AssetManager(); this.placeholders = new PlaceholderFactory(); this.loadModels = loadModels;
     this.material = new THREE.MeshLambertMaterial({ vertexColors: true });
     this.batches = new Map(); this.dummy = new THREE.Object3D(); this.corpses = [];
     this.white = new THREE.Color('#ffffff'); this.flash = new THREE.Color('#ffb298');
     for (const type of Object.keys(CHARACTERS)) this.addBatch(type);
-    this.shadows = new THREE.InstancedMesh(new THREE.CircleGeometry(0.32, 10).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#624d38', transparent: true, opacity: 0.2, depthWrite: false }), CONFIG.maxPlayerUnits + CONFIG.maxEnemyUnits + 2);
+    this.shadows = new THREE.InstancedMesh(quality ? softDirectionalShadow() : new THREE.CircleGeometry(0.32, 10).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: quality ? '#354b42' : '#624d38', vertexColors: quality, transparent: true, opacity: quality ? 0.32 : 0.2, depthWrite: false, side: quality ? THREE.DoubleSide : THREE.FrontSide }), CONFIG.maxPlayerUnits + CONFIG.maxEnemyUnits + 2);
     this.shadows.frustumCulled = false; this.shadows.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(this.shadows);
   }
   addBatch(type) {
@@ -70,7 +72,7 @@ export class CharacterVisualFactory {
   }
   renderUnit(unit, time, dt, deathTime = null) {
     if (!unit.alive && deathTime === null) return;
-    const batch = this.batches.get(unit.type), def = CHARACTERS[unit.type];
+    const batch = this.batches.get(unit.type), def = this.definitions[unit.type];
     if (batch.count >= batch.capacity + (deathTime !== null && batch.capacity > 1 ? CORPSE_LIMIT : 0)) return;
     if (this.loadModels && def.modelUrl && batch.loadState === 'placeholder') this.loadReplacement(batch, def);
     const scale = def.scale * (batch.custom ? def.modelScale : 1);

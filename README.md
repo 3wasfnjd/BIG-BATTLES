@@ -6,6 +6,12 @@ A lightweight, original Saudi-inspired chibi crowd runner using vanilla ES modul
 
 **Current status:** Stage 1 completes in simulation, and all six animated **prototype** GLBs are integrated. The recruit is an improved modeled draft made in Higgsfield 3D Jutsu; the other five retain their existing procedural shapes. These are not final artwork matching the approved illustrations. Real Safari/Android visual playback and FPS remain unverified: the available cloud browser disables WebGL.
 
+**Quality study, September 27:** [Open the experimental visual profile](https://3wasfnjd.github.io/BIG-BATTLES/?quality=1), or keep the original appearance by omitting `quality=1`. This study uses the same Stage 1, combat, army counts and gates. It adds closer adaptive framing, chamfered stone paving, soft directional footprint shadows, modified lighting/tone mapping, MSAA when supported, clearer tracers/impacts and bounded muzzle flashes. The start-screen preview loads this profile's candidate recruit. [Arabic assessment, production route and acceptance criteria](docs/QUALITY-PLAN-AR.md).
+
+The candidate has 3,384 triangles, one material, no textures, seven rigid joints, five clips and a 263,560-byte GLB. Its revised cloth/back equipment and baked vertex occlusion were inspected in actual Blender renders. **It is still below the requested reference quality and is not accepted as final character art.** No other character has been rebuilt for this study, and LOD is not implemented. The source, renders and production brief are kept under `art/`; none of those source images are downloaded by gameplay. Only the experimental URL requests the extra GLB. `npm run models:quality` repackages the committed source reproducibly.
+
+Validation: all **36 Node tests** pass, including camera containment at four aspect ratios and both corridor edges, actual candidate GLB/clip parsing, instanced crowd replacement, constant environment geometry at four times the stage length, and 740 bounded muzzle flashes. `node tools/benchmark.mjs --quality` ran 50+50, 100+100, 200+200, 320+320 and 320+420 units. The final case measured **0.442 ms median / 1.072 ms p95 CPU simulation+scene updates**, with no projectile misses; cosmetic effects saturated under heavy stress. [Raw results](docs/quality-validation-2026-09-27.json). These measurements exclude GPU drawing, MSAA, browser overhead and gate canvas text. Real phone FPS is still unknown.
+
 ## Play / develop
 
 [Play BIG BATTLES](https://3wasfnjd.github.io/BIG-BATTLES/)

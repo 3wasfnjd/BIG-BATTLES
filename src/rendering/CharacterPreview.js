@@ -4,8 +4,9 @@ import { CHARACTERS } from '../data/characters.js';
 // Temporary inspection view: the actual game asset, shared cache and renderer.
 // Only this one close-up gets a cloned rig; the army keeps its instanced poses.
 export class CharacterPreview {
-  constructor(assets) {
+  constructor(assets, definition = CHARACTERS.recruit) {
     this.assets = assets;
+    this.definition = definition;
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color('#173d2e');
     this.camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
@@ -26,8 +27,8 @@ export class CharacterPreview {
   async load() {
     if (this.model) return;
     if (this.loading) return this.loading;
-    this.loading = this.assets.animatedModel(CHARACTERS.recruit).then(model => {
-      const definition = CHARACTERS.recruit;
+    this.loading = this.assets.animatedModel(this.definition).then(model => {
+      const definition = this.definition;
       model.root.scale.setScalar(definition.scale * definition.modelScale);
       model.root.rotation.y = definition.rotationY;
       model.root.position.y = definition.offsetY;
@@ -49,7 +50,7 @@ export class CharacterPreview {
       this.resize(this.camera.aspect);
     }).catch(error => {
       // Permit a retry after a failed network load without touching other assets.
-      this.assets.models.delete(CHARACTERS.recruit.modelUrl);
+      this.assets.models.delete(this.definition.modelUrl);
       throw error;
     }).finally(() => { this.loading = null; });
     return this.loading;

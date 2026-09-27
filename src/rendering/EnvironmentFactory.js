@@ -4,8 +4,8 @@ import { createEnvironmentKit } from './EnvironmentKit.js';
 
 // Data-driven stage distances remain independent of the reusable decorative kit.
 export class EnvironmentFactory {
-  constructor(scene, length) {
-    this.kit = createEnvironmentKit(); this.batches = new Map(); this.window = NaN;
+  constructor(scene, length, { quality = false } = {}) {
+    this.kit = createEnvironmentKit(quality); this.batches = new Map(); this.window = NaN;
     const material = new THREE.MeshLambertMaterial({ vertexColors: true });
     const placements = new Map([...this.kit.keys()].map(key => [key, []]));
     const dummy = new THREE.Object3D();

@@ -10,27 +10,31 @@ import { GateRenderer, gateLabel } from '../rendering/GateRenderer.js';
 import { EffectsRenderer } from '../rendering/EffectsRenderer.js';
 import { CameraRig } from '../rendering/CameraRig.js';
 import { CharacterPreview } from '../rendering/CharacterPreview.js';
+import { QualityCameraRig } from '../rendering/QualityCameraRig.js';
+import { visualProfile } from '../rendering/VisualProfiles.js';
 import { clamp } from './Config.js';
 export class Game {
   constructor() {
     const $ = id => document.getElementById(id);
     this.ui = Object.fromEntries(['game', 'scene', 'hud', 'start', 'result', 'result-title', 'result-note', 'army-count', 'progress', 'pause', 'paused', 'replay', 'boss-ui', 'boss-health', 'gate-feedback', 'debug', 'preview-soldier', 'soldier-preview', 'preview-back', 'preview-status'].map(id => [id, $(id)]));
     this.debug = new URLSearchParams(location.search).get('debug') === '1';
+    this.profile = visualProfile(location.search);
     if (this.debug && new URLSearchParams(location.search).get('portrait') === '1') document.body.classList.add('dev-portrait');
     this.ui.debug.hidden = !this.debug;
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.ui.scene, antialias: false, alpha: false, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.ui.scene, antialias: this.profile.quality, alpha: false, powerPreference: 'high-performance' });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    if (this.profile.quality) this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.performance = new PerformanceManager(this.renderer);
     this.scene = new THREE.Scene(); this.scene.background = new THREE.Color('#d3b88f'); this.scene.fog = new THREE.Fog('#d3b88f', 42, 102);
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 160);
-    this.scene.add(new THREE.HemisphereLight('#fff4de', '#917e60', 2.2));
-    const sunlight = new THREE.DirectionalLight('#fff3d3', 2.0); sunlight.position.set(-14, 24, 8); this.scene.add(sunlight);
-    this.effects = new EffectsRenderer(this.scene);
+    this.scene.add(new THREE.HemisphereLight('#fff4de', this.profile.quality ? '#748778' : '#917e60', this.profile.quality ? 1.35 : 2.2));
+    const sunlight = new THREE.DirectionalLight('#fff3d3', this.profile.quality ? 2.8 : 2.0); sunlight.position.set(-14, 24, 8); this.scene.add(sunlight);
+    this.effects = new EffectsRenderer(this.scene, this.profile);
     this.sim = new Simulation({ onGate: (gate, choice, added) => this.gateFeedback(choice, added), onHit: (unit, died) => { this.effects.hit(unit, died); if (died) this.visuals.die(unit); }, onFinish: state => this.showResult(state) });
-    this.visuals = new CharacterVisualFactory(this.scene);
-    this.environment = new EnvironmentFactory(this.scene, this.sim.data.length);
+    this.visuals = new CharacterVisualFactory(this.scene, this.profile);
+    this.environment = new EnvironmentFactory(this.scene, this.sim.data.length, this.profile);
     this.gateRenderer = new GateRenderer(this.scene, this.sim.gates.gates);
-    this.cameraRig = new CameraRig(this.camera); this.cameraRig.reset(this.sim.army.depth); this.feedbackTimer = 0; this.uiTimer = 0; this.sceneTime = 0; this.lastCount = -1;
+    this.cameraRig = this.profile.quality ? new QualityCameraRig(this.camera) : new CameraRig(this.camera); this.cameraRig.reset(this.sim.army.depth); this.feedbackTimer = 0; this.uiTimer = 0; this.sceneTime = 0; this.lastCount = -1;
     this.input = new InputSystem(this.ui.game, () => this.startOrResume(), x => {
       if (this.sim.state === 'playing') this.sim.army.targetX = clamp(x, -this.sim.army.limit, this.sim.army.limit);
       return this.sim.army.targetX;
@@ -47,6 +51,10 @@ export class Game {
     this.ui.scene.addEventListener('webglcontextrestored', () => { this.contextLost = false; this.loop.resetClock(); this.ui.paused.querySelector('p').textContent = 'المس للمتابعة'; });
     this.resize(); this.loop = new GameLoop(dt => this.sim.update(dt), (dt, raw) => this.render(dt, raw));
     $('load-status').textContent = 'المس للبدء'; $('load-line').hidden = true;
+    if (this.profile.quality) {
+      document.title = 'BIG BATTLES · تجربة الجودة';
+      this.ui.start.querySelector('.start-prompt > span').textContent = 'تجربة بصرية • الشخصيات قيد التطوير';
+    }
     this.loop.start();
   }
   resize() {
@@ -88,7 +96,7 @@ export class Game {
   }
   async openPreview() {
     if (this.sim.state !== 'ready' || this.previewVisible || this.contextLost) return;
-    this.preview ??= new CharacterPreview(this.visuals.assets);
+    this.preview ??= new CharacterPreview(this.visuals.assets, this.visuals.definitions?.recruit);
     this.preview.reset(); this.preview.resize(this.camera.aspect);
     this.previewVisible = true; this.input.reset();
     this.ui.start.hidden = true; this.ui['soldier-preview'].hidden = false;
@@ -136,7 +144,7 @@ export class Game {
     }
     const { army, stage } = this.sim;
     const animDt = this.sim.state === 'paused' ? 0 : dt; this.sceneTime += animDt;
-    this.cameraRig.update(army, animDt);
+    this.cameraRig.update(army, animDt, stage.enemies, this.sim.gates.gates);
     this.environment.update(army.center.z); this.gateRenderer.update(army.center.z);
     this.visuals.update(army.units, stage.enemies, this.sceneTime, animDt);
     this.effects.update(this.sim.projectiles.pool.active, army, stage.enemies, animDt, this.sceneTime);
@@ -155,6 +163,7 @@ export class Game {
     if (boss) this.ui['boss-health'].style.transform = `scaleX(${boss.health / boss.maxHealth})`;
     if (this.debug) this.ui.debug.textContent = [
       `Build ${RELEASE || 'dev'}`,
+      `Look ${this.profile.quality ? 'quality study' : 'original'} · MSAA ${this.renderer.getContext().getContextAttributes()?.antialias ? 'on' : 'off'}`,
       `FPS ${Math.round(this.performance.fps)} · DPR ${this.performance.dpr.toFixed(2)}`,
       `Player ${army.count} · Enemy ${stage.enemies.length} · Peak ${this.sim.peakArmy}`,
       `Projectiles ${this.sim.projectiles.pool.active.length} · Peak ${this.sim.projectiles.pool.peak} · Misses ${this.sim.projectiles.pool.misses}`,

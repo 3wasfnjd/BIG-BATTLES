@@ -1,5 +1,5 @@
 // Package the inspected Higgsfield mesh with the game's cheap shared rigid rig.
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
@@ -7,7 +7,8 @@ import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometr
 import { clipsFor } from './animation-clips.mjs';
 
 globalThis.FileReader = class { readAsArrayBuffer(blob) { blob.arrayBuffer().then(value => { this.result = value; this.onloadend?.(); }); } };
-const sourceFile = new URL('../../art/sources/recruit-workshop.glb', import.meta.url);
+const quality = process.argv.includes('--quality');
+const sourceFile = new URL(`../../art/sources/${quality ? 'recruit-quality-workshop' : 'recruit-workshop'}.glb`, import.meta.url);
 const data = await readFile(sourceFile);
 const gltf = await new GLTFLoader().parseAsync(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength), '');
 gltf.scene.updateMatrixWorld(true);
@@ -33,7 +34,7 @@ gltf.scene.traverse(object => {
   (object.userData.component === 'rifle' ? rifle : body).push(geometry);
 });
 const group = new THREE.Group(); group.name = 'BIG_BATTLES_recruit';
-group.userData = { artStatus: 'procedural-prototype', modelStyle: 'reference-modeled-draft', finalReferenceArt: false, source: 'Higgsfield 3D Jutsu workshop; scripted mesh, not Meshy generation', forward: '-Z', origin: 'ground-center', textureCount: 0 };
+group.userData = { artStatus: 'procedural-prototype', modelStyle: quality ? 'quality-study' : 'reference-modeled-draft', finalReferenceArt: false, source: 'Higgsfield 3D Jutsu workshop; scripted mesh, not Meshy generation', forward: '-Z', origin: 'ground-center', textureCount: 0 };
 const pivots = [[0,0,0],[0,.91,0],[.137,.4,0],[-.137,.4,0],[.231,.704,.008],[-.231,.704,.008],[0,.88,.28]];
 const bones = pivots.map((p, i) => { const bone = new THREE.Bone(); bone.name = `joint_${i}`; bone.position.fromArray(p); return bone; });
 for (let i = 1; i < bones.length; i++) bones[0].add(bones[i]);
@@ -47,15 +48,16 @@ for (const [name, parts] of [['body', body], ['rifle', rifle]]) {
   const mesh = new THREE.SkinnedMesh(geometry, material); mesh.name = name; group.add(mesh); mesh.bind(skeleton, new THREE.Matrix4());
   triangles += geometry.index.count / 3; vertices += geometry.attributes.position.count;
 }
-if (triangles > 3000 || vertices > 12000) throw new Error(`Recruit over budget: ${triangles} triangles / ${vertices} vertices`);
+if (triangles > (quality ? 3600 : 3000) || vertices > 12000) throw new Error(`Recruit over budget: ${triangles} triangles / ${vertices} vertices`);
 const animations = clipsFor('recruit', bones);
 const binary = await new GLTFExporter().parseAsync(group, { binary: true, animations, onlyVisible: true });
-const output = new URL('../../assets/models/recruit.glb', import.meta.url);
+const output = new URL(`../../assets/models/${quality ? 'quality/' : ''}recruit.glb`, import.meta.url);
+await mkdir(new URL('./', output), { recursive: true });
 await writeFile(output, Buffer.from(binary));
-const manifestPath = new URL('../../assets/models/manifest.json', import.meta.url);
-const report = JSON.parse(await readFile(manifestPath, 'utf8'));
-const entry = { type: 'recruit', file: 'recruit.glb', bytes: binary.byteLength, triangles, vertices, materials: 1, meshes: 2, bones: 7, animations: animations.map(a => a.name), artStatus: 'reference-modeled-draft', generator: 'tools/art/package-recruit.mjs', source: 'art/sources/recruit-workshop.glb' };
+const manifestPath = new URL(`../../assets/models/${quality ? 'quality/' : ''}manifest.json`, import.meta.url);
+const report = quality ? { models: [{ type: 'recruit' }] } : JSON.parse(await readFile(manifestPath, 'utf8'));
+const entry = { type: 'recruit', file: 'recruit.glb', bytes: binary.byteLength, triangles, vertices, materials: 1, meshes: 2, bones: 7, animations: animations.map(a => a.name), artStatus: quality ? 'quality-study' : 'reference-modeled-draft', generator: 'tools/art/package-recruit.mjs', source: `art/sources/${quality ? 'recruit-quality-workshop' : 'recruit-workshop'}.glb` };
 report.models[report.models.findIndex(m => m.type === 'recruit')] = entry;
-report.generator = 'npm run models';
+report.generator = quality ? 'node tools/art/package-recruit.mjs --quality' : 'npm run models';
 await writeFile(manifestPath, JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify(entry));

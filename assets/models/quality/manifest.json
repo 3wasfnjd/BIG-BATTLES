@@ -1,0 +1,25 @@
+{
+  "models": [
+    {
+      "type": "recruit",
+      "file": "recruit.glb",
+      "bytes": 263560,
+      "triangles": 3384,
+      "vertices": 3881,
+      "materials": 1,
+      "meshes": 2,
+      "bones": 7,
+      "animations": [
+        "idle",
+        "run",
+        "shoot",
+        "hit",
+        "death"
+      ],
+      "artStatus": "quality-study",
+      "generator": "tools/art/package-recruit.mjs",
+      "source": "art/sources/recruit-quality-workshop.glb"
+    }
+  ],
+  "generator": "node tools/art/package-recruit.mjs --quality"
+}

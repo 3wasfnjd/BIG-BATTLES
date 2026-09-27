@@ -11,21 +11,27 @@ import { EffectsRenderer } from '../src/rendering/EffectsRenderer.js';
 import { EnvironmentFactory } from '../src/rendering/EnvironmentFactory.js';
 import { CameraRig } from '../src/rendering/CameraRig.js';
 import { CHARACTERS } from '../src/data/characters.js';
+import { QUALITY_CHARACTERS } from '../src/rendering/VisualProfiles.js';
+import { QualityCameraRig } from '../src/rendering/QualityCameraRig.js';
+
+const quality = process.argv.includes('--quality');
+const definitions = quality ? QUALITY_CHARACTERS : CHARACTERS;
 
 const assets = new AssetManager(), loader = new GLTFLoader();
-for (const def of Object.values(CHARACTERS)) {
+for (const def of Object.values(definitions)) {
   const bytes = await readFile(new URL(`../${def.modelUrl}`, import.meta.url));
   assets.models.set(def.modelUrl, loader.parseAsync(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), ''));
 }
-const scene = new THREE.Scene(), visuals = new CharacterVisualFactory(scene, { loadModels: false });
+const scene = new THREE.Scene(), visuals = new CharacterVisualFactory(scene, { loadModels: false, quality, definitions });
 visuals.assets = assets;
-for (const type of ['commander', 'recruit', 'elite', 'enemyGrunt']) await visuals.loadReplacement(visuals.batches.get(type), CHARACTERS[type]);
-const effects = new EffectsRenderer(scene), environment = new EnvironmentFactory(scene, 270);
-const camera = new THREE.PerspectiveCamera(45, 390 / 844, 0.1, 160), cameraRig = new CameraRig(camera);
+for (const type of ['commander', 'recruit', 'elite', 'enemyGrunt']) await visuals.loadReplacement(visuals.batches.get(type), definitions[type]);
+const effects = new EffectsRenderer(scene, {quality}), environment = new EnvironmentFactory(scene, 270, {quality});
+const camera = new THREE.PerspectiveCamera(45, 390 / 844, 0.1, 160), cameraRig = quality ? new QualityCameraRig(camera) : new CameraRig(camera);
 const percentile = (values, ratio) => [...values].sort((a, b) => a - b)[Math.floor((values.length - 1) * ratio)];
 const summarize = values => ({ median: +percentile(values, 0.5).toFixed(4), p95: +percentile(values, 0.95).toFixed(4), max: +Math.max(...values).toFixed(4) });
 const report = {
   date: new Date().toISOString(), kind: 'CPU simulation + scene/matrix updates; no WebGL renderer',
+  visualProfile: quality ? 'quality-study' : 'original',
   runtime: process.version, platform: `${process.platform}/${process.arch}`, cpu: cpus()[0].model,
   realDeviceFPS: null, webGLFPS: null, webGLLimitation: 'Available cloud Chrome reports GL_RENDERER Disabled; no GPU frame rendering was measured.',
   method: 'Five sustained cases. Real combat/upgrades and animated GLB crowd poses. Health raised to 100000 only to maintain population. 240 warmup ticks + 1200 measured fixed 60 Hz ticks per case. No gates/canvas text in this CPU harness.',
@@ -56,4 +62,4 @@ for (const [players, enemies] of [[50,50], [100,100], [200,200], [320,320], [320
   report.cases.push(row); console.log(JSON.stringify(row));
 }
 await mkdir(new URL('../.test-output/', import.meta.url), { recursive: true });
-await writeFile(new URL('../.test-output/benchmark.json', import.meta.url), JSON.stringify(report, null, 2) + '\n');
+await writeFile(new URL(`../.test-output/${quality ? 'quality-' : ''}benchmark.json`, import.meta.url), JSON.stringify(report, null, 2) + '\n');
