@@ -21,7 +21,7 @@ function triangleGLB() {
 test('a real GLB parses and replaces a placeholder without changing entity stats', async () => {
   const gltf = await new GLTFLoader().parseAsync(triangleGLB(), '');
   const assets = new AssetManager(); assets.models.set('fixture.glb', Promise.resolve(gltf));
-  const scene = new THREE.Scene(), visuals = new CharacterVisualFactory(scene), army = new PlayerArmy(6);
+  const scene = new THREE.Scene(), visuals = new CharacterVisualFactory(scene, { loadModels: false }), army = new PlayerArmy(6);
   visuals.assets = assets;
   const definition = { modelUrl: 'fixture.glb', mode: 'instanced', animations: { idle: 'idle' } };
   const before = army.units.map(unit => [unit.id, unit.health, unit.damage]);
@@ -34,7 +34,7 @@ test('a real GLB parses and replaces a placeholder without changing entity stats
 });
 
 test('320 players and 420 enemies retain bounded instance batches across reset', () => {
-  const scene = new THREE.Scene(), visuals = new CharacterVisualFactory(scene), army = new PlayerArmy(320), horde = new EnemyHorde(420, 20);
+  const scene = new THREE.Scene(), visuals = new CharacterVisualFactory(scene, { loadModels: false }), army = new PlayerArmy(320), horde = new EnemyHorde(420, 20);
   const objectCount = scene.children.length;
   visuals.update(army.units, horde.units, 1, 1 / 60);
   assert.equal(visuals.batches.get('recruit').meshes[0].count, 319);

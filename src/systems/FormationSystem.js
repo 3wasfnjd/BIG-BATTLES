@@ -1,4 +1,4 @@
-import { CONFIG, ease } from '../core/Config.js';
+import { CONFIG, clamp, ease } from '../core/Config.js';
 export class FormationSystem {
   layout(units, commander = true) {
     const soldiers = commander ? units.filter(unit => unit.type !== 'commander') : units;
@@ -19,8 +19,11 @@ export class FormationSystem {
   update(units, center, dt, forward = true) {
     const smoothing = ease(16, dt);
     for (const unit of units) {
+      const oldX = unit.x, oldZ = unit.z;
       unit.x += (center.x + unit.formationSlot.x - unit.x) * smoothing;
       unit.z += (center.z + unit.formationSlot.z * (forward ? 1 : -1) - unit.z) * smoothing;
+      unit.x = clamp(unit.x, -CONFIG.corridorWidth / 2 + unit.radius, CONFIG.corridorWidth / 2 - unit.radius);
+      unit.moving = Math.abs(unit.x - oldX) + Math.abs(unit.z - oldZ) > dt * 0.1;
       unit.hitTime = Math.max(0, unit.hitTime - dt);
     }
   }

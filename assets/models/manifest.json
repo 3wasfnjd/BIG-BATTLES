@@ -1,0 +1,109 @@
+{
+  "status": "procedural-prototype",
+  "generator": "tools/generate-models.mjs",
+  "finalReferenceArt": false,
+  "models": [
+    {
+      "type": "commander",
+      "file": "commander.glb",
+      "bytes": 124024,
+      "triangles": 1004,
+      "vertices": 1446,
+      "materials": 1,
+      "meshes": 3,
+      "bones": 7,
+      "animations": [
+        "idle",
+        "run",
+        "shoot",
+        "hit",
+        "death"
+      ]
+    },
+    {
+      "type": "recruit",
+      "file": "recruit.glb",
+      "bytes": 90184,
+      "triangles": 716,
+      "vertices": 870,
+      "materials": 1,
+      "meshes": 2,
+      "bones": 7,
+      "animations": [
+        "idle",
+        "run",
+        "shoot",
+        "hit",
+        "death"
+      ]
+    },
+    {
+      "type": "elite",
+      "file": "elite.glb",
+      "bytes": 91504,
+      "triangles": 728,
+      "vertices": 894,
+      "materials": 1,
+      "meshes": 2,
+      "bones": 7,
+      "animations": [
+        "idle",
+        "run",
+        "shoot",
+        "hit",
+        "death"
+      ]
+    },
+    {
+      "type": "enemyGrunt",
+      "file": "enemy-grunt.glb",
+      "bytes": 85584,
+      "triangles": 660,
+      "vertices": 788,
+      "materials": 1,
+      "meshes": 2,
+      "bones": 7,
+      "animations": [
+        "idle",
+        "run",
+        "shoot",
+        "hit",
+        "death"
+      ]
+    },
+    {
+      "type": "desertBeast",
+      "file": "desert-beast.glb",
+      "bytes": 82628,
+      "triangles": 578,
+      "vertices": 772,
+      "materials": 1,
+      "meshes": 1,
+      "bones": 7,
+      "animations": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ]
+    },
+    {
+      "type": "giantBoss",
+      "file": "giant-boss.glb",
+      "bytes": 93888,
+      "triangles": 860,
+      "vertices": 924,
+      "materials": 1,
+      "meshes": 2,
+      "bones": 7,
+      "animations": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ]
+    }
+  ]
+}

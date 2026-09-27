@@ -26,5 +26,5 @@ export class EffectsRenderer {
     const attacker = enemies.find(u => u.telegraph); this.ring.visible = !!attacker;
     if (attacker) { const radius = attacker.type === 'giantBoss' && attacker.attackCount % 3 === 2 ? 4.7 : attacker.range; this.ring.position.set(attacker.x, 0.06, -attacker.z); this.ring.scale.setScalar(radius); this.ring.material.opacity = 0.35 + Math.sin(time * 20) * 0.15; }
   }
-  clear() { this.pool.clear(); }
+  clear() { this.pool.clear(true); this.ring.visible = false; this.bullets.count = 0; this.impacts.count = 0; }
 }

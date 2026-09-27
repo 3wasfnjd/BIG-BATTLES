@@ -24,6 +24,7 @@ export class GateRenderer {
     const label = gateLabel(choice); if (this.textures.has(label)) return this.textures.get(label);
     const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 128;
     const ctx = canvas.getContext('2d'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#184d78'; ctx.lineWidth = 5; ctx.font = '900 65px Arial';
+    ctx.direction = choice.type.startsWith('army') ? 'ltr' : 'rtl';
     if (!choice.type.startsWith('army')) ctx.font = 'bold 43px Arial';
     ctx.strokeText(label, 128, 45); ctx.fillText(label, 128, 45);
     if (choice.type.startsWith('army')) for (const x of [107, 128, 149]) { ctx.beginPath(); ctx.arc(x, 94, 6, 0, Math.PI * 2); ctx.fill(); ctx.fillRect(x - 7, 103, 14, 15); }

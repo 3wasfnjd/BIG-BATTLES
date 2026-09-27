@@ -14,6 +14,8 @@ export class CharacterEntity {
     this.x = x; this.z = z; this.y = 0;
     this.formationSlot = { x: 0, z: 0 };
     this.state = 'idle'; this.alive = true;
+    this.moving = false; this.shotFlash = 0; this.incomingDamage = 0;
+    this.aimAngle = this.team === 'enemy' ? Math.PI : 0;
     this.shotTimer = (this.id % 17) / 17;
     this.hitTime = 0;
   }
