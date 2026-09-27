@@ -1,6 +1,6 @@
 {
   "status": "procedural-prototype",
-  "generator": "tools/generate-models.mjs",
+  "generator": "npm run models",
   "finalReferenceArt": false,
   "models": [
     {
@@ -23,9 +23,9 @@
     {
       "type": "recruit",
       "file": "recruit.glb",
-      "bytes": 90184,
-      "triangles": 716,
-      "vertices": 870,
+      "bytes": 204764,
+      "triangles": 2640,
+      "vertices": 2836,
       "materials": 1,
       "meshes": 2,
       "bones": 7,
@@ -35,7 +35,10 @@
         "shoot",
         "hit",
         "death"
-      ]
+      ],
+      "artStatus": "reference-modeled-draft",
+      "generator": "tools/art/package-recruit.mjs",
+      "source": "art/sources/recruit-workshop.glb"
     },
     {
       "type": "elite",

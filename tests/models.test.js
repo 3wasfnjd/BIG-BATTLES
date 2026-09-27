@@ -37,7 +37,7 @@ test('all six committed GLBs parse, contain five working clips, and meet mobile 
         assert.ok(Math.abs(point.x) < 2 && point.y >= -0.005 && point.y < 2 && Math.abs(point.z) < 2, `${type}: invalid bind pose ${point.toArray()}`);
       }
     });
-    assert.ok(triangles > 200 && triangles < 1500, `${type}: ${triangles}`); assert.ok(rigs > 0);
+    assert.ok(triangles > 200 && triangles <= (type === 'recruit' ? 3000 : 1500), `${type}: ${triangles}`); assert.ok(rigs > 0);
     assert.ok(type === 'desertBeast' || scene.getObjectByName(type === 'giantBoss' ? 'mace' : 'rifle'));
     if (type === 'commander') assert.ok(scene.getObjectByName('cape'));
     const animated = await assets.animatedModel(def);

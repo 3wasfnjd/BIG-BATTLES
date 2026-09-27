@@ -1,19 +1,19 @@
 # Character assets — prototype status
 
-These six GLBs are **procedural, animated prototypes**, not finished reconstructions of the approved illustrations. The supplied BIG-BATTLES-3D-CHARACTER-PACK contained images, prompts and specifications, but no GLB files. The existing silhouettes were preserved and the player palette was changed from blue to green at the user’s request on 2026-09-27, with masks, ghutra, shemagh pattern, eyebrows, pouches, claws and fangs refined. The approved reference artwork remains the target for final production art.
+These six GLBs are **procedural, animated prototypes**, not finished reconstructions of the approved illustrations. The supplied BIG-BATTLES-3D-CHARACTER-PACK contained images, prompts and specifications, but no GLB files. The existing silhouettes were preserved and the player palette was changed from blue to green at the user’s request on 2026-09-27, with masks, ghutra, shemagh pattern, eyebrows, pouches, claws and fangs refined. The approved reference artwork remains the target for final production art. The recruit has an improved scripted mesh from Higgsfield 3D Jutsu: it is a modeled draft, not an approved final reconstruction. The other five shapes are unchanged.
 
-Every file has a compact seven-joint rigid skin, one vertex-color material, no textures, no cameras/lights/background, and five named clips. Rigid joints are appropriate to these simple shapes; this is not a full anatomical/humanoid production rig. Weapons are separate meshes; the commander's cape is separate. The low polygon counts intentionally remain below the final-art budgets.
+Every file has a compact seven-joint rigid skin, one vertex-color material, no textures, no cameras/lights/background, and five named clips. Rigid joints are appropriate to these simple shapes; this is not a full anatomical/humanoid production rig. Weapons are separate meshes; the commander's cape is separate. The recruit now falls within its 1,500–3,000 triangle target. The other five prototypes remain below their final-art budgets.
 
 | File | Triangles | Bytes | Clips |
 | --- | ---: | ---: | --- |
 | `commander.glb` | 1,004 | 124,024 | idle, run, shoot, hit, death |
-| `recruit.glb` | 716 | 90,184 | idle, run, shoot, hit, death |
+| `recruit.glb` | 2,640 | 204,764 | idle, run, shoot, hit, death |
 | `elite.glb` | 728 | 91,500 | idle, run, shoot, hit, death |
 | `enemy-grunt.glb` | 660 | 85,584 | idle, run, shoot, hit, death |
 | `desert-beast.glb` | 578 | 82,628 | idle, walk, attack, hit, death |
 | `giant-boss.glb` | 860 | 93,888 | idle, walk, attack, hit, death |
 
-Total: 567,808 bytes (554.5 KiB), loaded as each character type first appears. `manifest.json` contains machine-readable measurements. `npm run models` regenerates/overwrites **these prototype files** from `PlaceholderFactory.js`; do not run it over later hand-authored final assets.
+Total: 682,388 bytes (666.4 KiB), loaded as each character type first appears. `manifest.json` contains machine-readable measurements. `npm run models` regenerates the procedural prototypes and then packages the committed Higgsfield recruit source with the shared rigid animation clips. `tools/art/package-recruit.mjs` strips workshop cameras/lights, orients the mesh to -Z, merges body/rifle separately, packs vertex colors and builds the seven-joint rig. Do not run this recipe over later hand-authored final assets.
 
 ## Final asset replacement contract
 

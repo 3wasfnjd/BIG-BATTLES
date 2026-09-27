@@ -1,0 +1,175 @@
+{
+  "date": "2026-09-27",
+  "method": "Sum unique geometry attribute/index byteLengths; instanceMatrix GPU arrays counted separately. No renderer or phone used. Stage length experiment uses new independent scenes.",
+  "before": {
+    "stageLength": 270,
+    "geometryBytes": 4020332,
+    "uniqueGeometries": 13,
+    "trianglesStored": 37226
+  },
+  "after": [
+    {
+      "stageLength": 270,
+      "geometryBytes": 77252,
+      "uniqueGeometries": 11,
+      "trianglesStored": 716,
+      "instanceBytes": 15616
+    },
+    {
+      "stageLength": 1080,
+      "geometryBytes": 77252,
+      "uniqueGeometries": 11,
+      "trianglesStored": 716,
+      "instanceBytes": 16128
+    }
+  ],
+  "testsPassed": 25,
+  "visualInspection": "Offline CPU projection of actual instanced corridor geometry at progress 0 and 208; not browser/GPU gameplay.",
+  "stress": {
+    "date": "2026-09-27T16:12:19.538Z",
+    "kind": "CPU simulation + scene/matrix updates; no WebGL renderer",
+    "runtime": "v24.19.0",
+    "platform": "linux/x64",
+    "cpu": "INTEL(R) XEON(R) PLATINUM 8573C",
+    "realDeviceFPS": null,
+    "webGLFPS": null,
+    "webGLLimitation": "Available cloud Chrome reports GL_RENDERER Disabled; no GPU frame rendering was measured.",
+    "method": "Five sustained cases. Real combat/upgrades and animated GLB crowd poses. Health raised to 100000 only to maintain population. 240 warmup ticks + 1200 measured fixed 60 Hz ticks per case. No gates/canvas text in this CPU harness.",
+    "cases": [
+      {
+        "players": 50,
+        "enemies": 50,
+        "simultaneousUnits": 100,
+        "simulationMs": {
+          "median": 0.008,
+          "p95": 0.0292,
+          "max": 0.4075
+        },
+        "sceneUpdateMs": {
+          "median": 0.0622,
+          "p95": 0.1904,
+          "max": 1.4649
+        },
+        "totalCpuMs": {
+          "median": 0.072,
+          "p95": 0.2232,
+          "max": 1.4719
+        },
+        "projectilePeak": 79,
+        "projectileMisses": 0,
+        "effectMisses": 0,
+        "visibleMeshesBeforeFrustumCulling": 46
+      },
+      {
+        "players": 100,
+        "enemies": 100,
+        "simultaneousUnits": 200,
+        "simulationMs": {
+          "median": 0.0116,
+          "p95": 0.0376,
+          "max": 0.5652
+        },
+        "sceneUpdateMs": {
+          "median": 0.0945,
+          "p95": 0.1871,
+          "max": 0.8299
+        },
+        "totalCpuMs": {
+          "median": 0.1079,
+          "p95": 0.2132,
+          "max": 0.8464
+        },
+        "projectilePeak": 158,
+        "projectileMisses": 0,
+        "effectMisses": 0,
+        "visibleMeshesBeforeFrustumCulling": 47
+      },
+      {
+        "players": 200,
+        "enemies": 200,
+        "simultaneousUnits": 400,
+        "simulationMs": {
+          "median": 0.0213,
+          "p95": 0.0629,
+          "max": 3.009
+        },
+        "sceneUpdateMs": {
+          "median": 0.1792,
+          "p95": 0.4736,
+          "max": 5.692
+        },
+        "totalCpuMs": {
+          "median": 0.2093,
+          "p95": 0.5666,
+          "max": 5.7088
+        },
+        "projectilePeak": 285,
+        "projectileMisses": 0,
+        "effectMisses": 1040,
+        "visibleMeshesBeforeFrustumCulling": 47
+      },
+      {
+        "players": 320,
+        "enemies": 320,
+        "simultaneousUnits": 640,
+        "simulationMs": {
+          "median": 0.0443,
+          "p95": 0.1082,
+          "max": 0.9695
+        },
+        "sceneUpdateMs": {
+          "median": 0.2722,
+          "p95": 0.5254,
+          "max": 1.4885
+        },
+        "totalCpuMs": {
+          "median": 0.3287,
+          "p95": 0.6089,
+          "max": 1.5371
+        },
+        "projectilePeak": 404,
+        "projectileMisses": 0,
+        "effectMisses": 4373,
+        "visibleMeshesBeforeFrustumCulling": 47
+      },
+      {
+        "players": 320,
+        "enemies": 420,
+        "simultaneousUnits": 740,
+        "simulationMs": {
+          "median": 0.0649,
+          "p95": 0.1652,
+          "max": 1.86
+        },
+        "sceneUpdateMs": {
+          "median": 0.3087,
+          "p95": 0.6668,
+          "max": 2.4339
+        },
+        "totalCpuMs": {
+          "median": 0.3898,
+          "p95": 0.8077,
+          "max": 2.865
+        },
+        "projectilePeak": 403,
+        "projectileMisses": 0,
+        "effectMisses": 4347,
+        "visibleMeshesBeforeFrustumCulling": 47
+      }
+    ]
+  },
+  "recruitModel": {
+    "status": "reference-modeled-draft",
+    "triangles": 2640,
+    "bytes": 204764,
+    "animations": [
+      "idle",
+      "run",
+      "shoot",
+      "hit",
+      "death"
+    ],
+    "materials": 1,
+    "textures": 0
+  }
+}

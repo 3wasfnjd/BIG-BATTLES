@@ -3,7 +3,7 @@ const visual = (file, scale, mode = 'instanced') => ({ modelUrl: `assets/models/
 const meleeAnimations = { idle: 'idle', walk: 'walk', attack: 'attack', hit: 'hit', death: 'death' };
 export const CHARACTERS = {
   commander: { team: 'player', health: 150, speed: 4.6, radius: 0.3, weapon: 'commander', ...visual('commander', 1.18, 'animated') },
-  recruit: { team: 'player', health: 34, speed: 4.6, radius: 0.23, weapon: 'recruit', ...visual('recruit', 0.86) },
+  recruit: { team: 'player', health: 34, speed: 4.6, radius: 0.23, weapon: 'recruit', ...visual('recruit', 0.86), artStatus: 'reference-modeled-draft' },
   elite: { team: 'player', health: 62, speed: 4.6, radius: 0.25, weapon: 'elite', ...visual('elite', 0.9) },
   enemyGrunt: { team: 'enemy', health: 18, speed: 1.7, radius: 0.24, weapon: 'enemyGrunt', ...visual('enemy-grunt', 0.87) },
   desertBeast: { team: 'enemy', health: 5000, damage: 14, fireRate: 0.8, speed: 3, range: 3.8, radius: 1.1, attackLimit: 3, windup: 0.6, cooldown: 1.1, ...visual('desert-beast', 1.5, 'animated'), animations: { ...meleeAnimations } },
