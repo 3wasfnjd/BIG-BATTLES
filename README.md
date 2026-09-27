@@ -10,12 +10,13 @@ A lightweight, original Saudi-inspired chibi crowd runner using vanilla ES modul
 
 [Play BIG BATTLES](https://3wasfnjd.github.io/BIG-BATTLES/)
 
-GitHub Pages serves `main` directly. WebGL 2 and ES modules are required. All runtime dependencies/assets are self-hosted, with no CDN/build step.
+GitHub Pages serves `main` directly. WebGL 2 and ES modules are required. All runtime dependencies/assets are self-hosted. There is no bundler or CDN. Run `npm run release` after changing runtime files and before publishing; it stamps a content-derived release into the static HTML and import map.
 
 ```sh
 npm run serve       # http://localhost:8080 (Python 3)
 npm ci              # development dependencies; Three.js pinned to 0.180.0
-npm test            # gameplay, controls, real GLBs, all 128 gate paths
+npm run release     # stamp asset/module versions after runtime changes
+npm test            # verify release freshness, gameplay and all 128 gate paths
 npm run benchmark   # CPU/scene update stress harness; NOT GPU FPS
 npm run models      # rebuild prototype GLBs, then package the inspected recruit source
 npm run vendor      # copy pinned Three.js distribution to vendor/
@@ -116,3 +117,9 @@ Two added tests cover memory scaling, road continuity, instance capacity, visibi
 **Next: test one complete growth-route run on an actual iPhone in Safari with `?debug=1`, record FPS/frame p95 at 50, 100, 200 and 320 soldiers, check gate readability and drag reversal, pause/resume and replay, then repeat on Android.** Use +10 → ×2 → weapon → ×2 → elite → ×3 → ×2 to exercise the maximum army. Tune draw/pose/DPR budgets from these device measurements before increasing crowd limits.
 
 Final concept-matched character art, full production rigs and smooth GPU crowd skinning remain future work. There is no audio yet. Stage 1 is functionally complete in simulation, but it has not received a verified mobile visual/playability pass; it should be treated as a playable prototype, not a finished release.
+
+## Browser cache and publishing
+
+GitHub Pages currently serves files with a ten-minute browser cache. The release script versions the stylesheet, icon, entry module, every local JavaScript module (including relative dependencies and Three.js addon aliases), and GLB requests. Merely changing the entry-module URL does not refresh its dependency graph; the explicit import map keeps one consistent release. No service worker, cache-clearing loop or automatic mid-game reload is added.
+
+After runtime edits, run `npm run release`, then `npm test`, commit the generated `index.html` with the changed sources, and publish `main`. The release command prints a `?v=...` launch URL for users who still have an older document cached. `npm test` rejects a stale release stamp. The optional debug HUD shows `Build ...`; ordinary gameplay gains no additional UI. Two cache regressions bring the suite to 27 tests.

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { releaseAssetUrl } from './release.js';
 
 // Pose geometry is shared by every unit using that pose: no rig or mixer per crowd soldier.
 const POSE_SAMPLES = { idle: 1, run: 8, shoot: 3, hit: 3, death: 4 };
@@ -17,7 +18,7 @@ export class AssetManager {
     });
   }
   loadModel(url) {
-    if (!this.models.has(url)) this.models.set(url, import('three/addons/loaders/GLTFLoader.js').then(({ GLTFLoader }) => new GLTFLoader().loadAsync(url)));
+    if (!this.models.has(url)) this.models.set(url, import('three/addons/loaders/GLTFLoader.js').then(({ GLTFLoader }) => new GLTFLoader().loadAsync(releaseAssetUrl(url))));
     return this.models.get(url);
   }
   bakeParts(root) {

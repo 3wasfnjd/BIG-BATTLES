@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RELEASE } from './release.js';
 import { Simulation } from './Simulation.js';
 import { GameLoop } from './GameLoop.js';
 import { PerformanceManager } from './PerformanceManager.js';
@@ -93,6 +94,7 @@ export class Game {
     this.ui['boss-ui'].hidden = !boss || this.sim.state !== 'playing';
     if (boss) this.ui['boss-health'].style.transform = `scaleX(${boss.health / boss.maxHealth})`;
     if (this.debug) this.ui.debug.textContent = [
+      `Build ${RELEASE || 'dev'}`,
       `FPS ${Math.round(this.performance.fps)} · DPR ${this.performance.dpr.toFixed(2)}`,
       `Player ${army.count} · Enemy ${stage.enemies.length} · Peak ${this.sim.peakArmy}`,
       `Projectiles ${this.sim.projectiles.pool.active.length} · Peak ${this.sim.projectiles.pool.peak} · Misses ${this.sim.projectiles.pool.misses}`,
