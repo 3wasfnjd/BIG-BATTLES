@@ -24,6 +24,8 @@ npm run vendor      # copy pinned Three.js distribution to vendor/
 
 Drag anywhere to steer. Reversing a drag responds immediately even after reaching the corridor edge. The army's front center marker chooses the gate even when the crowd spans both lanes. HUD: army size, progress, pause; a boss bar appears only for the final fight. Switching tabs pauses play. Pause freezes simulation, visual animation, effects and camera movement. Victory/defeat has one replay button.
 
+The start screen now has a temporary **معاينة الجندي** (soldier preview) button. It opens the actual `recruit.glb` in a close-up with idle animation; drag horizontally to rotate and use **عودة** to return. This inspects the current draft, not a new model or a concept illustration. The viewer shares the existing renderer and asset cache, clones just one rig, and does not start the stage or change the army. Its camera fits portrait/landscape screens with room for the controls. Failed loads keep the back button available and can be retried by reopening.
+
 ## What existed and what changed
 
 The existing implementation already had a modular renderer-independent simulation, one data-driven stage, seven gate pairs, formations, automatic projectiles, five encounters, a fictional desert fortress, simple UI, instanced procedural characters, a GLB adapter, and 12 Node tests. These systems were retained.
@@ -76,6 +78,7 @@ Replace a model at its current path and adjust `modelScale`, `rotationY`, `offse
 | `src/entities/` | Gameplay data; no meshes or renderer dependency |
 | `src/systems/` | Movement, formation, gates, lane-based targets, pooled projectiles, enemy state machines and stage progression |
 | `src/rendering/CharacterVisualFactory.js` | Lazy GLB/fallback replacement, instanced pose batches, bounded death playback |
+| `src/rendering/CharacterPreview.js` | Temporary start-screen recruit close-up, isolated rig, drag rotation and responsive framing |
 | `src/core/AssetManager.js` | Cached GLB parsing, material grouping, shared pose baking, singular animation clips |
 | `src/rendering/EnvironmentFactory.js` | Nine reusable instanced corridor pieces: path, wall, tower, two banners, palm, supplies, torch and sandstone |
 | `src/data/` | Character stats/visual contract, weapons, Stage 1 sequence |
@@ -123,3 +126,5 @@ Final concept-matched character art, full production rigs and smooth GPU crowd s
 GitHub Pages currently serves files with a ten-minute browser cache. The release script versions the stylesheet, icon, entry module, every local JavaScript module (including relative dependencies and Three.js addon aliases), and GLB requests. Merely changing the entry-module URL does not refresh its dependency graph; the explicit import map keeps one consistent release. No service worker, cache-clearing loop or automatic mid-game reload is added.
 
 After runtime edits, run `npm run release`, then `npm test`, commit the generated `index.html` with the changed sources, and publish `main`. The release command prints a `?v=...` launch URL for users who still have an older document cached. `npm test` rejects a stale release stamp. The optional debug HUD shows `Build ...`; ordinary gameplay gains no additional UI. Two cache regressions bring the suite to 27 tests.
+
+The temporary preview adds four regressions (31 total): the actual recruit's vertices stay within the camera at five aspect ratios through a full rotation; its rig does not mutate the cached model; close/reopen during loading and failure/retry preserve the start state; drag, second-finger rejection, cancel and back release pointer capture. Lifecycle/input checks use a minimal DOM test fixture, and geometry checks use Three.js in Node. These are not a WebGL or physical touchscreen validation; the browser limitation above still applies.

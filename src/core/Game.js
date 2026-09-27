@@ -9,11 +9,12 @@ import { EnvironmentFactory } from '../rendering/EnvironmentFactory.js';
 import { GateRenderer, gateLabel } from '../rendering/GateRenderer.js';
 import { EffectsRenderer } from '../rendering/EffectsRenderer.js';
 import { CameraRig } from '../rendering/CameraRig.js';
+import { CharacterPreview } from '../rendering/CharacterPreview.js';
 import { clamp } from './Config.js';
 export class Game {
   constructor() {
     const $ = id => document.getElementById(id);
-    this.ui = Object.fromEntries(['game', 'scene', 'hud', 'start', 'result', 'result-title', 'result-note', 'army-count', 'progress', 'pause', 'paused', 'replay', 'boss-ui', 'boss-health', 'gate-feedback', 'debug'].map(id => [id, $(id)]));
+    this.ui = Object.fromEntries(['game', 'scene', 'hud', 'start', 'result', 'result-title', 'result-note', 'army-count', 'progress', 'pause', 'paused', 'replay', 'boss-ui', 'boss-health', 'gate-feedback', 'debug', 'preview-soldier', 'soldier-preview', 'preview-back', 'preview-status'].map(id => [id, $(id)]));
     this.debug = new URLSearchParams(location.search).get('debug') === '1';
     if (this.debug && new URLSearchParams(location.search).get('portrait') === '1') document.body.classList.add('dev-portrait');
     this.ui.debug.hidden = !this.debug;
@@ -37,6 +38,7 @@ export class Game {
     this.ui.pause.addEventListener('click', () => this.pause());
     this.ui.replay.addEventListener('click', event => { event.stopPropagation(); this.replay(); });
     this.ui.paused.addEventListener('click', () => this.startOrResume());
+    this.bindPreview();
     document.addEventListener('visibilitychange', () => { if (document.hidden) this.pause(); this.loop.resetClock(); });
     window.addEventListener('blur', () => this.pause());
     window.addEventListener('resize', () => this.resize());
@@ -50,11 +52,64 @@ export class Game {
   resize() {
     const rect = this.ui.game.getBoundingClientRect(); this.renderer.setSize(rect.width, rect.height, false);
     this.camera.aspect = rect.width / Math.max(1, rect.height); this.camera.updateProjectionMatrix();
+    this.preview?.resize(this.camera.aspect);
   }
   startOrResume() {
-    if (this.contextLost) return;
+    if (this.contextLost || this.previewVisible) return;
     if (this.sim.state === 'ready') { this.sim.start(); this.ui.start.hidden = true; this.ui.hud.hidden = false; }
     else if (this.sim.state === 'paused') { this.sim.state = 'playing'; this.ui.paused.hidden = true; this.loop.resetClock(); }
+  }
+  bindPreview() {
+    const overlay = this.ui['soldier-preview'];
+    this.ui['preview-soldier'].addEventListener('click', event => { event.stopPropagation(); this.openPreview(); });
+    this.ui['preview-back'].addEventListener('click', event => { event.stopPropagation(); this.closePreview(); });
+    overlay.addEventListener('pointerdown', event => {
+      event.stopPropagation();
+      if (!this.previewVisible || event.target.closest('button') || event.isPrimary === false || this.preview.pointer || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      event.preventDefault();
+      this.preview.beginDrag(event.pointerId, event.clientX);
+      overlay.setPointerCapture(event.pointerId);
+    });
+    overlay.addEventListener('pointermove', event => {
+      event.stopPropagation();
+      this.preview?.drag(event.pointerId, event.clientX, overlay.clientWidth);
+    });
+    for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) overlay.addEventListener(name, event => {
+      event.stopPropagation();
+      this.preview?.endDrag(event.pointerId);
+      if (overlay.hasPointerCapture(event.pointerId)) overlay.releasePointerCapture(event.pointerId);
+    });
+    overlay.addEventListener('click', event => event.stopPropagation());
+    overlay.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { event.preventDefault(); this.closePreview(); }
+      // The temporary dialog has one control; keep keyboard focus inside it.
+      if (event.key === 'Tab') { event.preventDefault(); this.ui['preview-back'].focus(); }
+    });
+  }
+  async openPreview() {
+    if (this.sim.state !== 'ready' || this.previewVisible || this.contextLost) return;
+    this.preview ??= new CharacterPreview(this.visuals.assets);
+    this.preview.reset(); this.preview.resize(this.camera.aspect);
+    this.previewVisible = true; this.input.reset();
+    this.ui.start.hidden = true; this.ui['soldier-preview'].hidden = false;
+    this.ui['preview-status'].textContent = 'جارٍ تحميل المجسم';
+    this.ui['preview-back'].focus({ preventScroll: true });
+    try {
+      await this.preview.load();
+      if (this.previewVisible) this.ui['preview-status'].textContent = '';
+    } catch (error) {
+      if (this.previewVisible) this.ui['preview-status'].textContent = 'تعذّر تحميل المجسم. ارجع ثم حاول مرة أخرى.';
+      console.warn('Soldier preview could not load', error);
+    }
+  }
+  closePreview() {
+    if (!this.previewVisible) return;
+    const overlay = this.ui['soldier-preview'], pointer = this.preview.pointer;
+    if (pointer && overlay.hasPointerCapture(pointer.id)) overlay.releasePointerCapture(pointer.id);
+    this.preview.reset(); this.previewVisible = false; this.input.reset();
+    overlay.hidden = true; this.ui.start.hidden = false;
+    this.ui['preview-soldier'].focus({ preventScroll: true });
+    this.loop.resetClock();
   }
   pause() { if (this.sim.state === 'playing') { this.sim.state = 'paused'; this.ui.paused.hidden = false; this.input.reset(); } }
   replay() {
@@ -74,6 +129,11 @@ export class Game {
     this.input.reset();
   }
   render(dt, raw) {
+    if (this.previewVisible) {
+      this.preview.update(document.hidden ? 0 : dt);
+      this.renderer.render(this.preview.scene, this.preview.camera);
+      return;
+    }
     const { army, stage } = this.sim;
     const animDt = this.sim.state === 'paused' ? 0 : dt; this.sceneTime += animDt;
     this.cameraRig.update(army, animDt);
