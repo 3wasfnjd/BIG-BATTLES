@@ -53,7 +53,7 @@ export class PlaceholderFactory {
     } else {
       const enemy = type === 'enemyGrunt' || type === 'giantBoss';
       const commander = type === 'commander', elite = type === 'elite', boss = type === 'giantBoss';
-      const cloth = enemy ? '#b72e38' : '#2375c4', armor = enemy ? '#3a3038' : '#c8ab72';
+      const cloth = enemy ? '#b72e38' : '#23894f', armor = enemy ? '#3a3038' : '#c8ab72';
       for (const x of [-0.16, 0.16]) {
         b.joint = x < 0 ? 2 : 3;
         box(cloth, x, 0.24, 0, 0.19, 0.34, 0.22);
@@ -81,8 +81,8 @@ export class PlaceholderFactory {
       if (!enemy) b.add(this.cylinder, '#29313b', 0, 1.26, 0.02, 0.405, 0.065, 0.365);
       if (elite) {
         box('#363b47', 0, 1.2, -0.32, 0.63, 0.16, 0.09);
-        box('#93bdc5', 0, 1.2, -0.375, 0.44, 0.1, 0.03);
-        box('#255d95', 0, 0.9, -0.3, 0.38, 0.15, 0.08);
+        box('#9fbaaa', 0, 1.2, -0.375, 0.44, 0.1, 0.03);
+        box('#215d3c', 0, 0.9, -0.3, 0.38, 0.15, 0.08);
         for (const x of [-0.33, 0.33]) box('#eee6d8', x, 1.0, 0.03, 0.1, 0.3, 0.26);
       }
       if (commander) {
@@ -91,11 +91,11 @@ export class PlaceholderFactory {
         for (const x of [-0.22, -0.08, 0.08, 0.22]) box('#ce3d4f', x, 1.38, 0, 0.06, 0.035, 0.25);
         box('#283037', 0, 0.87, -0.26, 0.43, 0.15, 0.12);
         b.joint = 6; b.component = 2;
-        box('#155d9d', 0, 0.53, 0.35, 0.64, 0.76, 0.045, -0.17);
+        box('#17603b', 0, 0.53, 0.35, 0.64, 0.76, 0.045, -0.17);
         box('#f7d076', 0, 0.65, 0.408, 0.16, 0.16, 0.025, 0, 0, Math.PI / 4);
         b.component = 0; b.joint = 1;
       }
-      if (type === 'recruit') box('#246bab', 0, 0.91, -0.3, 0.44, 0.2, 0.1);
+      if (type === 'recruit') box('#247547', 0, 0.91, -0.3, 0.44, 0.2, 0.1);
       if (enemy) box('#2b2c35', 0, 0.91, -0.27, 0.5, 0.23, 0.12);
       for (const x of [-0.14, 0.14]) {
         box(enemy ? '#ff684d' : '#fff8ec', x, 1.06, -0.323, 0.12, 0.09, 0.035);
@@ -115,7 +115,7 @@ export class PlaceholderFactory {
       } else {
         b.joint = 5; b.component = 1;
         box('#323c49', 0.19, 0.55, -0.4, 0.16, 0.17, 0.53);
-        box(enemy ? '#e5484e' : '#69caff', 0.19, 0.61, -0.46, 0.18, 0.045, 0.21);
+        box(enemy ? '#e5484e' : '#82e69b', 0.19, 0.61, -0.46, 0.18, 0.045, 0.21);
         box(armor, 0.19, 0.43, -0.4, 0.1, 0.18, 0.13);
         box('#293039', 0.19, 0.56, -0.76, 0.08, 0.08, 0.24);
       }

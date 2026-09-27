@@ -5,8 +5,8 @@ export class GateRenderer {
   constructor(scene, gates) {
     this.items = []; this.textures = new Map();
     const postGeometry = new THREE.BoxGeometry(0.2, 2.5, 0.25);
-    this.frameMaterials = [new THREE.MeshBasicMaterial({ color: '#5bd3ff' }), new THREE.MeshBasicMaterial({ color: '#ffe2a0' })];
-    this.panelMaterials = [new THREE.MeshBasicMaterial({ color: '#278fed', transparent: true, opacity: 0.48, side: THREE.DoubleSide, depthWrite: false }), new THREE.MeshBasicMaterial({ color: '#edb444', transparent: true, opacity: 0.48, side: THREE.DoubleSide, depthWrite: false })];
+    this.frameMaterials = [new THREE.MeshBasicMaterial({ color: '#68e894' }), new THREE.MeshBasicMaterial({ color: '#ffe2a0' })];
+    this.panelMaterials = [new THREE.MeshBasicMaterial({ color: '#24a65d', transparent: true, opacity: 0.48, side: THREE.DoubleSide, depthWrite: false }), new THREE.MeshBasicMaterial({ color: '#edb444', transparent: true, opacity: 0.48, side: THREE.DoubleSide, depthWrite: false })];
     for (const gate of gates) {
       const group = new THREE.Group(); group.position.z = -gate.z;
       gate.choices.forEach((choice, index) => {
@@ -23,7 +23,7 @@ export class GateRenderer {
   labelTexture(choice) {
     const label = gateLabel(choice); if (this.textures.has(label)) return this.textures.get(label);
     const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 128;
-    const ctx = canvas.getContext('2d'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#184d78'; ctx.lineWidth = 5; ctx.font = '900 65px Arial';
+    const ctx = canvas.getContext('2d'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#195936'; ctx.lineWidth = 5; ctx.font = '900 65px Arial';
     ctx.direction = choice.type.startsWith('army') ? 'ltr' : 'rtl';
     if (!choice.type.startsWith('army')) ctx.font = 'bold 43px Arial';
     ctx.strokeText(label, 128, 45); ctx.fillText(label, 128, 45);

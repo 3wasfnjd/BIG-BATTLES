@@ -27,7 +27,7 @@ export class EnvironmentFactory {
           add('#dec08d', side * 9, h, z, 3.04, 0.2, 3.65);
           for (const dx of [-0.95, 0, 0.95]) { add('#c59a68', side * 9 + dx, h + 0.33, z + 1.2, 0.46, 0.63, 0.55); add('#c59a68', side * 9 + dx, h + 0.33, z - 1.2, 0.46, 0.63, 0.55); }
           for (const level of [1.1, 2.3]) add('#695344', side * 7.58, level, z, 0.025, 0.5, 0.23);
-          const flag = start > 190 ? '#a03740' : '#1e5991';
+          const flag = start > 190 ? '#a03740' : '#206842';
           add(flag, side * 7.51, 2.35, z + 0.9, 0.045, 1.58, 0.8);
           add('#e9c980', side * 7.47, 2.45, z + 0.9, 0.055, 0.25, 0.25, Math.PI / 4);
           for (let triangle = 0; triangle < 3; triangle++) b.add(cone, '#efdbb1', side * 7.46, h - 0.5, z - 0.6 + triangle * 0.6, 0.18, 0.3, 0.05, 0, Math.PI / 2, Math.PI);
