@@ -14,17 +14,27 @@ export class PlayerArmy {
   get count() { return this.units.length; }
   add(count) {
     const amount = Math.min(Math.max(0, Math.floor(count)), CONFIG.maxPlayerUnits - this.count);
+    const first = this.count;
     for (let i = 0; i < amount; i++) {
       const unit = new CharacterEntity('recruit', this.center.x, this.center.z - (this.depth || 1));
       this.applyWeapon(unit); this.units.push(unit);
     }
-    this.reform(); return amount;
+    this.reform();
+    // Enter near the assigned slot, rather than stacking an entire gate reward.
+    for (let i = first; i < this.count; i++) {
+      const unit = this.units[i];
+      unit.x = this.center.x + unit.formationSlot.x;
+      unit.z = this.center.z + unit.formationSlot.z - 0.8;
+    }
+    return amount;
   }
   applyWeapon(unit) {
     const base = WEAPONS[CHARACTERS[unit.type].weapon];
     unit.damage = base.damage * this.upgrades.damage * (1 + (this.upgrades.level - 1) * 0.3);
     unit.fireRate = base.fireRate * this.upgrades.fireRate;
-    unit.level = this.upgrades.level;
+    unit.range = base.range; unit.projectileSpeed = base.projectileSpeed;
+    unit.radius = CHARACTERS[unit.type].radius;
+    unit.level = Math.max(base.level, this.upgrades.level);
   }
   upgrade(type, value) {
     if (type === 'army_add') return this.add(value);
@@ -44,11 +54,24 @@ export class PlayerArmy {
   }
   prune() {
     const before = this.count;
-    this.units = this.units.filter(unit => unit.alive);
+    let write = 0;
+    for (const unit of this.units) if (unit.alive) this.units[write++] = unit;
+    this.units.length = write;
     if (this.count !== before) this.reform();
   }
-  reform() { Object.assign(this, this.formation.layout(this.units)); this.targetX = clamp(this.targetX, -this.limit, this.limit); }
+  reform() {
+    Object.assign(this, this.formation.layout(this.units));
+    this.targetX = clamp(this.targetX, -this.limit, this.limit);
+    this.center.x = clamp(this.center.x, -this.limit, this.limit);
+  }
   get limit() { return Math.max(0, CONFIG.corridorWidth / 2 - this.halfWidth - 0.25); }
   snap() { for (const unit of this.units) { unit.x = this.center.x + unit.formationSlot.x; unit.z = this.center.z + unit.formationSlot.z; } }
-  update(dt, moving) { this.formation.update(this.units, this.center, dt); for (const u of this.units) if (u.state !== 'shoot') u.state = moving ? 'run' : 'idle'; }
+  update(dt, moving) {
+    this.formation.update(this.units, this.center, dt);
+    for (const unit of this.units) {
+      unit.moving = moving || unit.moving;
+      unit.state = unit.shotFlash > 0 ? 'shoot' : unit.moving ? 'run' : 'idle';
+      if (moving && !unit.shotFlash) unit.aimAngle = 0;
+    }
+  }
 }
