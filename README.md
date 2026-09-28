@@ -4,7 +4,25 @@
 
 A lightweight, original Saudi-inspired chibi crowd runner using vanilla ES modules and Three.js. Touch once, drag left/right; movement forward, targeting and combat are automatic. One stage, no account/backend/shop, joystick, shooting button or gameplay menus.
 
-**Current status:** Stage 1 completes in simulation, and all six animated **prototype** GLBs are integrated. The recruit is an improved modeled draft made in Higgsfield 3D Jutsu; the other five retain their existing procedural shapes. These are not final artwork matching the approved illustrations. Real Safari/Android visual playback and FPS remain unverified: the available cloud browser disables WebGL.
+## Arcade look — 2026-09-28 (default)
+
+The default appearance is now a bright arcade army-runner style modeled on the supplied reference screenshots: chunky chibi soldiers, a dense crowd, glowing bolt tracers, glassy number gates, floating army/enemy counters and a boss health number. The player identity stays green/gold with a ghutra detail; enemies stay red. The earlier looks remain available: `?classic=1` (original) and `?quality=1` (the Sept 27 study).
+
+| Battle | Beast | Final wave | Boss |
+| --- | --- | --- | --- |
+| ![](docs/arcade/1-battle.jpg) | ![](docs/arcade/2-beast.jpg) | ![](docs/arcade/3-horde.jpg) | ![](docs/arcade/4-boss.jpg) |
+
+- **Characters** (`src/rendering/ChibiFactory.js`): all six characters are built procedurally from smooth primitives and baked into shared pose frames (idle/run/shoot/hit/death; giants add walk/attack). No GLB is downloaded. Crowd soldiers are 1,015–1,378 triangles, commander 2,542, rock golem 632, armoured boss about 3,000. A toon rim shader separates neighbours in a packed crowd; per-unit offsets break the grid.
+- **Stage** (`ArcadeEnvironment.js`): sandstone causeway over an animated sea shader, stone parapets, pillars with green banners, piers, rocks and a red-roofed fortress gate. The paving is one runtime canvas texture.
+- **Camera/lighting**: steep 54° close framing that fits the army, both gate lanes and the giants; one sun shadow map follows the army (heroes and giants cast real shadows, the crowd uses soft instanced blobs).
+- **Effects** (`ArcadeEffects.js`): bolts with saturated tracers and additive halos, muzzle stars, impact flashes with sparks, red telegraph ring that fills during the wind-up, light camera shake when a giant dies.
+- **UI**: bundled Lilita One and Lalezar fonts (SIL OFL, licences in `assets/fonts/`), outlined arcade HUD, world-pinned army/horde/boss tags, gate pop feedback.
+- **Pace**: forward speed 4.6 → 6.2 m/s, enemy waves advance faster, and soldiers fire more often with proportionally lower damage (similar DPS). All 128 gate routes still terminate: 99 victories / 29 defeats (was 100/28).
+- **Bug fix**: a unit could keep ~1e-15 HP after floating-point damage, never be targeted again and stall a wave. Near-zero health and reservations now clamp to zero.
+
+Validation: all 39 Node tests pass, including new checks for chibi clips/budgets, 320 + 420 instanced procedural units, boss wind-up/strike frames and arcade camera containment. The screenshots above were rendered in headless Chromium with SwiftShader (software WebGL), so they show the real renderer but say nothing about phone FPS. The 320-player vs 190-enemy case draws about 690k triangles in 27 draw calls; **real iPhone/Android frame rates are still unmeasured**.
+
+**Previous status:** Stage 1 completes in simulation, and all six animated **prototype** GLBs are integrated. The recruit is an improved modeled draft made in Higgsfield 3D Jutsu; the other five retain their existing procedural shapes. These are not final artwork matching the approved illustrations. Real Safari/Android visual playback and FPS remain unverified: the available cloud browser disables WebGL.
 
 **Quality study, September 27:** [Open the experimental visual profile](https://3wasfnjd.github.io/BIG-BATTLES/?quality=1), or keep the original appearance by omitting `quality=1`. This study uses the same Stage 1, combat, army counts and gates. It adds closer adaptive framing, chamfered stone paving, soft directional footprint shadows, modified lighting/tone mapping, MSAA when supported, clearer tracers/impacts and bounded muzzle flashes. The start-screen preview loads this profile's candidate recruit. [Arabic assessment, production route and acceptance criteria](docs/QUALITY-PLAN-AR.md).
 

@@ -10,7 +10,7 @@ export class EnemyHorde {
   }
   update(dt, army) {
     if (!this.active) return;
-    this.center.z = Math.max(army.center.z + 7.5, this.center.z - 1.7 * dt);
+    this.center.z = Math.max(army.center.z + 7.5, this.center.z - 2.4 * dt);
     this.center.x += (army.center.x * 0.4 - this.center.x) * Math.min(1, dt);
     this.formation.update(this.units, this.center, dt, false);
     for (const unit of this.units) unit.state = unit.shotFlash > 0 ? 'shoot' : unit.moving ? 'run' : 'idle';
