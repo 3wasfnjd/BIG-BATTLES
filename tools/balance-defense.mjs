@@ -24,6 +24,7 @@ export function play(stage, levels = {}, policy = botTarget) {
   for (let tick = 0; tick < 60 * 240 && sim.state === 'playing'; tick++) {
     if (tick % 15 === 0) sim.army.targetX = policy(sim);
     if (sim.energy >= ENERGY_MAX) sim.useRain();
+    sim.useGiants(); sim.useCannons();
     sim.update(1 / 60);
   }
   return sim;

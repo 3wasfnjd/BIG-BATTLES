@@ -18,9 +18,10 @@ import { UPGRADES } from '../data/upgrades.js';
 import { WEAPON_KINDS } from '../data/weaponKinds.js';
 import { clamp } from './Config.js';
 import { GameAudio } from './Audio.js';
-import { COIN_VALUE, ENERGY_MAX } from './DefenseSimulation.js';
+import { COIN_VALUE, ENERGY_MAX, GIANTS_MAX, CANNONS_MAX } from './DefenseSimulation.js';
+import { GeometryBuilder } from '../rendering/PlaceholderFactory.js';
 
-const ICONS = { soldiers: '🛡️', damage: '🏹', fireRate: '⚡', fort: '🏰' };
+const ICONS = { soldiers: '🛡️', damage: '🏹', fireRate: '⚡', abilities: '✨', fort: '🏰' };
 const AR_DIGITS = ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '١٠', '١١', '١٢', '١٣', '١٤', '١٥'];
 // Label height above each giant (world units) and boss announcements.
 const GIANT_TOP = { giantBoss: 6.2, desertBeast: 3.8, dragon: 6.4, yeti: 5.6, warlock: 5.2, warElephant: 5.2 };
@@ -37,7 +38,7 @@ export class DefenseGame {
     const $ = id => document.getElementById(id);
     this.ui = Object.fromEntries(['game', 'scene', 'hud', 'start', 'result', 'result-title', 'result-note', 'result-coins', 'army-count', 'progress', 'pause', 'paused', 'replay', 'gate-feedback', 'debug',
       'army-tag', 'giant-tag', 'horde-tag', 'base-meter', 'base-hp', 'stage-label', 'defense-menu', 'menu-coins', 'stage-picker', 'open-upgrades', 'upgrades', 'upgrade-coins', 'upgrade-list',
-      'close-upgrades', 'result-upgrades', 'next-stage', 'breach-flash', 'barrel-tags', 'load-status', 'load-line', 'float-layer', 'banner', 'confetti', 'lightning', 'sound', 'menu-sound', 'frost', 'powers', 'combo', 'rain-btn', 'result-stars', 'daily-gift'].map(id => [id, $(id)]));
+      'close-upgrades', 'result-upgrades', 'next-stage', 'breach-flash', 'barrel-tags', 'load-status', 'load-line', 'float-layer', 'banner', 'confetti', 'lightning', 'sound', 'menu-sound', 'frost', 'powers', 'combo', 'rain-btn', 'giants-btn', 'cannons-btn', 'result-stars', 'daily-gift'].map(id => [id, $(id)]));
     this.debug = new URLSearchParams(location.search).get('debug') === '1';
     this.ui.debug.hidden = !this.debug;
     document.body.classList.add('arcade', 'defense');
@@ -71,6 +72,7 @@ export class DefenseGame {
     this.shieldDome = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#6ff0ff', transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false }));
     this.shieldDome.visible = false; this.scene.add(this.shieldDome);
     this.freezeTint = new THREE.Color(0.55, 0.8, 1.35);
+    this.turretMeshes = [0, 1].map(() => { const m = this.makeTurret(); m.visible = false; this.scene.add(m); return m; });
 
     this.sim = new DefenseSimulation({
       onHit: (unit, died) => {
@@ -86,6 +88,10 @@ export class DefenseGame {
       onLightning: points => { this.effects.lightning(points); this.audio.thunder(true); },
       onCombo: (count, bonus) => this.showCombo(count, bonus),
       onBossWindup: unit => this.audio.bossWindup(unit.type),
+      onGiants: allies => { for (const a of allies) this.effects.explosion(a.x, a.z, 'ice'); this.banner('🗿 العمالقة!', 'عملاقان يحميان جيشك', 'weapon'); this.cameraRig.kick(0.6); this.audio.charge(); },
+      onSmash: (x, z) => { this.effects.clash(x, z, true); this.effects.explosion(x, z, 'ice'); this.audio.blast('cannon'); },
+      onCannons: () => { this.banner('💣 المدفعية!', 'مدفعان يقصفان الأعداء', 'weapon'); this.audio.power('fire'); },
+      onTurretFire: turret => { this.effects.clash(turret.x, turret.z - 1.2, false); this.audio.volley(8, 'cannon'); },
       onBreath: (x, z) => { for (let i = 0; i <= 10; i++) this.effects.explosion(x + (Math.random() - 0.5) * 2.4, z - 1 - i * (z + 4) / 10, 'cannon'); this.cameraRig.kick(0.7); this.audio.breath(); },
       onBoulder: (unit, x, z) => { this.effects.explosion(x, z, 'ice'); this.effects.explosion(x + 0.8, z + 0.5, 'ice'); this.effects.clash(x, z, true); this.audio.blast('cannon'); },
       onSummon: (x, z) => { this.effects.explosion(x - 1.2, z - 1, 'summon'); this.effects.explosion(x + 1.2, z - 1, 'summon'); this.audio.summon(); },
@@ -108,6 +114,8 @@ export class DefenseGame {
     const click = (id, handler) => this.ui[id].addEventListener('click', event => { event.stopPropagation(); handler(); });
     click('pause', () => this.pause());
     click('rain-btn', () => this.sim.useRain());
+    click('giants-btn', () => this.sim.useGiants());
+    click('cannons-btn', () => this.sim.useCannons());
     click('daily-gift', () => this.claimDaily());
     for (const id of ['sound', 'menu-sound']) click(id, () => { this.audio.toggle(); this.syncSound(); });
     this.syncSound();
@@ -151,7 +159,7 @@ export class DefenseGame {
   startOrResume() {
     if (!this.ui.upgrades.hidden) return;
     this.audio.unlock();
-    if (this.sim.state === 'ready' && !this.ui.start.hidden) { this.sim.start(); this.ui.start.hidden = true; this.ui.hud.hidden = false; this.ui['base-meter'].hidden = false; this.ui['rain-btn'].hidden = false; this.banner(`المرحلة ${AR_DIGITS[this.stageId - 1]}`, this.stage.name, 'stage'); }
+    if (this.sim.state === 'ready' && !this.ui.start.hidden) { this.sim.start(); this.ui.start.hidden = true; this.ui.hud.hidden = false; this.ui['base-meter'].hidden = false; this.ui['rain-btn'].hidden = false; this.ui['giants-btn'].hidden = false; this.ui['cannons-btn'].hidden = false; this.banner(`المرحلة ${AR_DIGITS[this.stageId - 1]}`, this.stage.name, 'stage'); }
     else if (this.sim.state === 'paused') { this.sim.state = 'playing'; this.ui.paused.hidden = true; this.loop.resetClock(); this.audio.setMode('battle'); }
   }
   pause() { if (this.sim.state === 'playing') { this.sim.state = 'paused'; this.ui.paused.hidden = false; this.input.reset(); this.audio.setMode('paused'); } }
@@ -166,7 +174,7 @@ export class DefenseGame {
     this.cameraRig.reset(this.sim.army.depth); this.lastCount = -1; this.lastBase = -1;
     this.ui.result.hidden = true; this.ui.paused.hidden = true; this.ui['gate-feedback'].classList.remove('show');
     this.renderMenu();
-    this.giantDamage.clear(); this.visuals.setWeapon('crossbow'); this.ui['rain-btn'].hidden = true; this.ui.frost.classList.remove('on'); this.ui.powers.textContent = ''; this.lastPowers = ''; this.archerWarned = false; this.lastShots = 0; this.audio.setMode('menu', 0); for (const f of this.floats) f.el.hidden = true; this.ui.confetti.textContent = '';
+    this.giantDamage.clear(); this.visuals.setWeapon('crossbow'); this.ui['rain-btn'].hidden = true; this.ui['giants-btn'].hidden = true; this.ui['cannons-btn'].hidden = true; this.ui.frost.classList.remove('on'); this.ui.powers.textContent = ''; this.lastPowers = ''; this.archerWarned = false; this.lastShots = 0; this.audio.setMode('menu', 0); for (const f of this.floats) f.el.hidden = true; this.ui.confetti.textContent = '';
     if (autoStart) { this.ui.start.hidden = false; this.startOrResume(); } else { this.ui.start.hidden = false; this.ui.hud.hidden = true; }
     this.loop.resetClock();
   }
@@ -222,7 +230,7 @@ export class DefenseGame {
     const victory = state === 'victory', stars = victory ? starsFor(this.sim.base.hp, this.sim.base.maxHp) : 0;
     this.progress.earn(this.sim.coins);
     const starBonus = victory ? this.progress.complete(this.stageId, DEFENSE_STAGES.length, stars).bonus : 0, earned = this.sim.coins + starBonus;
-    this.ui['rain-btn'].hidden = true; this.ui.frost.classList.remove('on'); this.ui.powers.textContent = '';
+    this.ui['rain-btn'].hidden = true; this.ui['giants-btn'].hidden = true; this.ui['cannons-btn'].hidden = true; this.ui.frost.classList.remove('on'); this.ui.powers.textContent = '';
     const starBox = this.ui['result-stars']; starBox.hidden = !victory; starBox.innerHTML = [1, 2, 3].map(n => `<i class="${n <= stars ? 'on' : ''}">★</i>`).join('');
     this.input.reset(); this.labels.hide(); for (const tag of this.barrelTags) tag.hidden = true;
     this.ui.hud.hidden = true; this.ui.result.hidden = false; this.ui.result.classList.toggle('defeat', !victory);
@@ -284,6 +292,17 @@ export class DefenseGame {
       piece.style.cssText = `left:${Math.random() * 100}%;background:${colors[i % colors.length]};animation-delay:${(Math.random() * 0.8).toFixed(2)}s;animation-duration:${(2.2 + Math.random() * 1.6).toFixed(2)}s;--spin:${Math.round(Math.random() * 720 - 360)}deg;--drift:${Math.round(Math.random() * 120 - 60)}px`;
       box.append(piece);
     }
+  }
+  // Artillery piece: wooden carriage with wheels and a bronze barrel (barrel is child 0 for recoil).
+  makeTurret() {
+    const group = new THREE.Group(), cyl = new THREE.CylinderGeometry(1, 1, 1, 14), box = new THREE.BoxGeometry();
+    const barrel = new GeometryBuilder(); barrel.add(cyl, '#3a3f4a', 0, 1.0, -0.4, 0.32, 1.9, 0.32, Math.PI / 2 - 0.25); barrel.add(cyl, '#f2c14e', 0, 1.05, -0.9, 0.36, 0.14, 0.36, Math.PI / 2 - 0.25); barrel.add(cyl, '#f2c14e', 0, 0.85, 0.3, 0.36, 0.14, 0.36, Math.PI / 2 - 0.25);
+    const base = new GeometryBuilder(); base.add(box, '#7a4a2a', 0, 0.55, 0.1, 0.7, 0.35, 1.4);
+    for (const x of [-0.5, 0.5]) { base.add(cyl, '#5a3a22', x, 0.45, 0.1, 0.45, 0.12, 0.45, 0, 0, Math.PI / 2); base.add(cyl, '#f2c14e', x * 1.08, 0.45, 0.1, 0.12, 0.1, 0.12, 0, 0, Math.PI / 2); }
+    const material = new THREE.MeshLambertMaterial({ vertexColors: true });
+    const barrelMesh = new THREE.Mesh(barrel.finish(), material), baseMesh = new THREE.Mesh(base.finish(), material);
+    barrelMesh.castShadow = baseMesh.castShadow = true; group.add(barrelMesh, baseMesh); group.scale.setScalar(1.3);
+    cyl.dispose(); box.dispose(); return group;
   }
   showCombo(count, bonus) {
     const el = this.ui.combo; el.innerHTML = `<b>×${count}</b><small>كومبو! +${bonus} 🪙</small>`;
@@ -356,7 +375,11 @@ export class DefenseGame {
     this.cameraRig.update(army, animDt, this.sim.enemies);
     this.environment.update(0, this.sceneTime, this.scene.fog, animDt);
     this.props.update(this.sim, animDt);
-    this.visuals.update(army.units, this.sim.enemies, this.sceneTime, animDt);
+    this.visuals.update(this.sim.allies.length ? army.units.concat(this.sim.allies) : army.units, this.sim.enemies, this.sceneTime, animDt);
+    this.turretMeshes.forEach((mesh, i) => {
+      const t = this.sim.turrets[i]; mesh.visible = !!t;
+      if (t) { mesh.position.set(t.x, 0, -t.z); mesh.children[0].position.z = t.recoil * 0.25; mesh.scale.setScalar(Math.min(1, (this.sim.turrets[i].life > 0.3 ? 1 : this.sim.turrets[i].life / 0.3))); }
+    });
     this.effects.update(this.sim.projectiles.pool.active, army, this.sim.enemies, animDt, this.sceneTime, this.camera);
     if (this.feedbackTimer > 0) { this.feedbackTimer -= animDt; if (this.feedbackTimer <= 0) this.ui['gate-feedback'].classList.remove('show'); }
     this.renderer.render(this.scene, this.camera);
@@ -371,6 +394,9 @@ export class DefenseGame {
     if (army.count !== this.lastCount) { this.ui['army-count'].textContent = army.count; this.lastCount = army.count; }
     if (base.hp !== this.lastBase) { this.ui['base-hp'].textContent = base.hp; this.lastBase = base.hp; }
     this.ui.progress.style.transform = `scaleX(${this.sim.progress.toFixed(3)})`;
+    for (const [id, value, max] of [['giants-btn', this.sim.giantEnergy, GIANTS_MAX], ['cannons-btn', this.sim.cannonEnergy, CANNONS_MAX]]) {
+      const el = this.ui[id], k = value / max; el.style.setProperty('--charge', k.toFixed(3)); el.classList.toggle('ready', k >= 1);
+    }
     const charge = this.sim.energy / ENERGY_MAX, rain = this.ui['rain-btn'];
     rain.style.setProperty('--charge', charge.toFixed(3)); rain.classList.toggle('ready', charge >= 1 && !this.sim.rain);
     const weapon = this.sim.weapon !== 'crossbow' ? [`${WEAPON_KINDS[this.sim.weapon].icon} ${WEAPON_KINDS[this.sim.weapon].name}`] : [];
