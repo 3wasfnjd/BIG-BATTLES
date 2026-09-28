@@ -21,7 +21,8 @@ export class CharacterEntity {
   }
   takeDamage(damage) {
     if (!this.alive) return false;
-    this.health = Math.max(0, this.health - damage);
+    // Treat float residue as dead: a 1e-15 HP unit could otherwise never be targeted.
+    this.health = this.health - damage > 1e-6 ? this.health - damage : 0;
     this.hitTime = 0.12;
     if (this.health === 0) { this.alive = false; this.state = 'death'; return true; }
     return false;

@@ -5,3 +5,47 @@
 #soldier-preview{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:space-between;align-items:center;touch-action:none;padding:calc(24px + env(safe-area-inset-top)) 22px calc(27px + env(safe-area-inset-bottom));cursor:grab}
 #soldier-preview:active{cursor:grabbing}.preview-top{display:flex;align-items:center;justify-content:space-between;gap:20px;width:100%;text-align:right}.preview-top h2{font-size:27px;margin:0 0 5px}.preview-top p{font-size:12px;color:#c5d7c7;margin:0}#preview-back{min-width:70px;min-height:44px;padding:11px 18px;border-radius:10px;background:#ffffff18;border:1px solid #ffffff40;font-size:16px;font-weight:700}#preview-status{font-size:16px;text-align:center;max-width:280px;line-height:1.7;background:#173d2eed;border-radius:10px;padding:14px}#preview-status:empty{display:none}.preview-hint{margin:0;color:#d5e5d8;font-size:14px;text-shadow:0 1px 3px #092519}
 @media(max-height:500px){#preview-soldier{margin-top:10px;padding:8px 18px}#soldier-preview{padding:12px 20px}.preview-top h2{font-size:22px}.preview-top p,.preview-hint{font-size:11px}}
+/* Arcade look (default). Fonts are bundled: Lilita One (numbers/Latin), Lalezar (Arabic), both SIL OFL. */
+@font-face{font-family:'Lilita One';src:url(assets/fonts/lilita-one-latin.woff2) format('woff2');font-display:swap;unicode-range:U+0000-00FF,U+2000-206F,U+2212,U+00D7}
+@font-face{font-family:'Lalezar';src:url(assets/fonts/lalezar-arabic.woff2) format('woff2');font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+200C-200E,U+FB50-FDFF,U+FE70-FEFC}
+@font-face{font-family:'Lalezar';src:url(assets/fonts/lalezar-latin.woff2) format('woff2');font-display:swap;unicode-range:U+0000-00FF}
+body.arcade{--ink:#0f3550;--gold:#ffd24a;--green:#2fae5b;background:#7fcbe6}
+body.arcade #game{font-family:'Lilita One','Lalezar','Arial Black',sans-serif;letter-spacing:.2px}
+body.arcade .screen{background:linear-gradient(180deg,#0b2d4a99,#0b2d4a10 38%,#0b2d4a10 62%,#0b2d4acc)}
+body.arcade h1{font-family:'Lilita One','Arial Black',sans-serif;font-weight:400;font-size:clamp(56px,15vw,92px);letter-spacing:0;color:#fff;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:0 6px 0 var(--ink),0 12px 22px #0008}
+body.arcade h1 span{color:var(--gold)}
+body.arcade .brand-mark{font-size:44px;color:var(--gold);text-shadow:0 3px 0 var(--ink)}
+body.arcade .arabic-name{font-family:'Lalezar',sans-serif;font-weight:400;font-size:34px;margin:14px 0 4px;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:0 4px 0 var(--ink)}
+body.arcade .tagline{font-size:12px;letter-spacing:4px;text-shadow:0 2px 0 var(--ink)}
+body.arcade .start-prompt p{font-family:'Lalezar',sans-serif;font-weight:400;font-size:30px;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:0 4px 0 var(--ink)}
+body.arcade .start-prompt>span{font-family:'Lalezar',sans-serif;font-size:15px;opacity:.95;text-shadow:0 2px 0 var(--ink)}
+body.arcade #preview-soldier{font-family:'Lalezar',sans-serif;font-weight:400;background:#ffffffe6;color:var(--ink);border:3px solid var(--ink);border-radius:16px;box-shadow:0 5px 0 var(--ink)}
+body.arcade #preview-soldier small{color:#c77a00}
+body.arcade #hud{gap:10px}
+body.arcade .army-meter{background:linear-gradient(#3fcf72,#1f9a4c);border:3px solid var(--ink);border-radius:18px;box-shadow:0 4px 0 var(--ink);padding:5px 14px 5px 10px}
+body.arcade .army-meter svg{fill:#fff;filter:drop-shadow(0 2px 0 var(--ink))}
+body.arcade .army-meter strong{font-weight:400;font-size:30px;line-height:1;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:0 3px 0 var(--ink)}
+body.arcade .stage-meter{font-family:'Lalezar',sans-serif;font-weight:400;font-size:17px;text-shadow:0 2px 0 var(--ink);-webkit-text-stroke:1px var(--ink);paint-order:stroke fill}
+body.arcade .progress-track{height:12px;border:3px solid var(--ink);background:#ffffff70;border-radius:10px;box-shadow:0 3px 0 var(--ink)}
+body.arcade .progress-track i{background:linear-gradient(#ffe27a,#f5a623)}
+body.arcade #pause{width:44px;height:44px;border-radius:14px;background:#fff;color:var(--ink);border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink);font-size:18px}
+body.arcade #gate-feedback{direction:ltr;unicode-bidi:isolate;top:24%;font-family:'Lilita One','Lalezar',sans-serif;font-weight:400;font-size:64px;color:#fff;-webkit-text-stroke:4px #0d5a2c;paint-order:stroke fill;text-shadow:0 6px 0 #0d5a2c,0 0 30px #5dff9a;opacity:0;transform:scale(.6)}
+body.arcade #gate-feedback.show{animation:gate-pop 1.2s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes gate-pop{0%{opacity:0;transform:scale(.4)}12%{opacity:1;transform:scale(1.15)}25%{transform:scale(1)}75%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-30px)}}
+.world-tag{position:absolute;left:0;top:0;pointer-events:none;will-change:transform;z-index:1;text-align:center}
+.world-tag b{display:block;font-family:'Lilita One','Arial Black',sans-serif;font-weight:400;font-size:30px;line-height:1;color:#fff;-webkit-text-stroke:5px var(--ink,#0f3550);paint-order:stroke fill;text-shadow:0 4px 0 var(--ink,#0f3550)}
+#army-tag b{font-size:34px;background:linear-gradient(#45d97c,#1d9448);border:3px solid #0f3550;border-radius:14px;padding:2px 12px 4px;-webkit-text-stroke:3px #0f3550;box-shadow:0 4px 0 #0f3550}
+#horde-tag b{background:linear-gradient(#ff6a5c,#c3222e);border:3px solid #4a0d14;border-radius:14px;padding:2px 12px 4px;-webkit-text-stroke:3px #4a0d14;text-shadow:0 3px 0 #4a0d14;box-shadow:0 4px 0 #4a0d14}
+#giant-tag b{font-size:40px}
+#giant-tag span{display:block;width:150px;height:16px;margin:4px auto 0;background:#2a0f14;border:3px solid #0f1a2a;border-radius:6px;overflow:hidden;box-shadow:0 3px 0 #0f1a2a}
+#giant-tag i{display:block;height:100%;background:linear-gradient(#ff7a4a,#e0332c);transform-origin:left;transition:transform .12s}
+body.arcade .result-screen,body.arcade .pause-screen{background:#0b2d4ab8}
+body.arcade .result-mark{font-size:80px;color:var(--gold);text-shadow:0 5px 0 var(--ink)}
+body.arcade #result-title{font-family:'Lalezar',sans-serif;font-weight:400;font-size:72px;color:var(--gold);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:0 6px 0 var(--ink)}
+body.arcade .result-screen.defeat #result-title{color:#ff7a6a}
+body.arcade .result-screen p{font-family:'Lalezar',sans-serif;font-size:22px;color:#fff;text-shadow:0 2px 0 var(--ink)}
+body.arcade #replay{font-family:'Lalezar',sans-serif;font-weight:400;font-size:30px;background:linear-gradient(#ffe27a,#f5a623);color:var(--ink);border:4px solid var(--ink);border-radius:20px;box-shadow:0 6px 0 var(--ink);padding:10px 60px 14px}
+body.arcade .pause-screen h2{font-family:'Lalezar',sans-serif;font-weight:400;font-size:56px;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:0 5px 0 var(--ink)}
+body.arcade .pause-screen p{font-family:'Lalezar',sans-serif;font-size:22px}
+body.arcade #soldier-preview{background:radial-gradient(circle at 50% 55%,#ffffff00,#0b2d4a55)}
+body.arcade .preview-top h2{font-family:'Lalezar',sans-serif;font-weight:400;-webkit-text-stroke:1px var(--ink);text-shadow:0 3px 0 var(--ink)}

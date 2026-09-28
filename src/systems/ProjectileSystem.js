@@ -27,6 +27,6 @@ export class ProjectileSystem {
       else { bullet.x += dx / distance * step; bullet.z += dz / distance * step; }
     }
   }
-  unreserve(bullet) { bullet.target.incomingDamage = Math.max(0, bullet.target.incomingDamage - bullet.damage); }
+  unreserve(bullet) { const left = bullet.target.incomingDamage - bullet.damage; bullet.target.incomingDamage = left > 1e-6 ? left : 0; }
   clear() { for (const bullet of this.pool.active) this.unreserve(bullet); this.pool.clear(); }
 }

@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { qualityCameraPose } from '../src/rendering/QualityCameraRig.js';
-import { visualProfile, QUALITY_CHARACTERS } from '../src/rendering/VisualProfiles.js';
+import { visualProfile, QUALITY_CHARACTERS, ARCADE_CHARACTERS } from '../src/rendering/VisualProfiles.js';
 import { EnvironmentFactory } from '../src/rendering/EnvironmentFactory.js';
 import { CharacterVisualFactory } from '../src/rendering/CharacterVisualFactory.js';
 import { EffectsRenderer } from '../src/rendering/EffectsRenderer.js';
@@ -33,9 +33,15 @@ test('closer camera contains growth rows, both gate choices and boss at mobile/l
 
 test('quality profile changes only visual paths and stays opt-in', () => {
   assert.equal(visualProfile('').quality,false);
+  assert.equal(visualProfile('').arcade,true);
   assert.equal(visualProfile('?quality=1').quality,true);
-  assert.equal(visualProfile('?quality=0').definitions,CHARACTERS);
-  for(const key of Object.keys(CHARACTERS)) for(const field of ['team','health','speed','radius','weapon','damage','range']) assert.equal(QUALITY_CHARACTERS[key][field],CHARACTERS[key][field]);
+  assert.equal(visualProfile('?quality=1').arcade,false);
+  assert.equal(visualProfile('?classic=1').definitions,CHARACTERS);
+  assert.equal(visualProfile('?quality=0').definitions,ARCADE_CHARACTERS);
+  for(const key of Object.keys(CHARACTERS)) for(const field of ['team','health','speed','radius','weapon','damage','range']) {
+    assert.equal(QUALITY_CHARACTERS[key][field],CHARACTERS[key][field]);
+    assert.equal(ARCADE_CHARACTERS[key][field],CHARACTERS[key][field]);
+  }
   assert.equal(CHARACTERS.recruit.modelUrl,'assets/models/recruit.glb');
 });
 
