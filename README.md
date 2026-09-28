@@ -4,7 +4,32 @@
 
 A lightweight, original Saudi-inspired chibi crowd runner using vanilla ES modules and Three.js. Touch once, drag left/right; movement forward, targeting and combat are automatic. One stage, no account/backend/shop, joystick, shooting button or gameplay menus.
 
-## Arcade look — 2026-09-28 (default)
+## Defence mode (Mob Control style) — 2026-09-28 (default)
+
+The game now plays like Mob Control: **your army holds its line and only slides left/right**. Enemy hordes, gates, barrels and giants come toward it. The earlier forward runner is kept at `?mode=runner`.
+
+| Gates | Horde | Golem (stage 2) | Boss (stage 3) |
+| --- | --- | --- | --- |
+| ![](docs/defense/1-gates.jpg) | ![](docs/defense/2-horde.jpg) | ![](docs/defense/3-golem.jpg) | ![](docs/defense/4-boss.jpg) |
+
+- **Rules** (`src/core/DefenseSimulation.js`): soldiers auto-fire at enemies in range (17 m). A walker that reaches the line dies and takes a soldier with it (a horned brute takes three). A walker that slips past the army costs castle hearts (brute: 3). Defeat when the army or the castle falls. Hordes drift toward the army when close, so dodging never fully avoids them.
+- **Rewards**: gate pairs arrive with green/red/gold panels; when no enemy is in range, soldiers shoot the growing gates, raising the value by 1 per 20 damage (red gates climb toward zero). Barrels show their HP and reward; break them before they pass for soldiers or an upgrade.
+- **Upgrades** (`src/data/upgrades.js`, `src/core/Progress.js`): coins from kills and stage clears buy start soldiers, arrow damage, fire rate and castle hearts. Coins, levels and unlocked stages are saved in this browser (localStorage, safe if storage is blocked).
+- **Stages** (`src/data/defenseStages.js`): 1 جسر الرمال, 2 وادي الصخور with two rock golems, 3 حصن العملاق with the armoured boss. Enemy HP, speed and counts rise per stage.
+- **Difficulty**, measured with a scripted left/right player (`node tools/balance-defense.mjs`), is not an estimate of human win rates:
+
+| Upgrade level (all four) | 0 | 1 | 2 | 3 | 4 | 6 |
+| --- | --- | --- | --- | --- | --- | --- |
+| Stage 1 | lose | win | win | win | win | win |
+| Stage 2 | lose | lose | win | win | win | win |
+| Stage 3 | lose | lose | lose | lose | win | win |
+
+  Reaching level 4 in everything costs about 2,400 coins. A stage 1 clear pays about 790 and stage 2 about 1,180, so stage 3 needs replays.
+- Also fixed: a stage could end as a victory while a gate or barrel was still approaching.
+
+Validation: 46 Node tests pass (7 new: fixed line, rising difficulty, gate charging/negative gates, barrel rewards and castle breaches, brute trades, save/load, brute instancing). Both modes load in headless Chromium without errors. Phone FPS is still unmeasured.
+
+## Arcade look — 2026-09-28
 
 The default appearance is now a bright arcade army-runner style modeled on the supplied reference screenshots: chunky chibi soldiers, a dense crowd, glowing bolt tracers, glassy number gates, floating army/enemy counters and a boss health number. The player identity stays green/gold with a ghutra detail; enemies stay red. The earlier looks remain available: `?classic=1` (original) and `?quality=1` (the Sept 27 study).
 

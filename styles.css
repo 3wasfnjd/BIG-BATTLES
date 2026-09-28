@@ -49,3 +49,39 @@ body.arcade .pause-screen h2{font-family:'Lalezar',sans-serif;font-weight:400;fo
 body.arcade .pause-screen p{font-family:'Lalezar',sans-serif;font-size:22px}
 body.arcade #soldier-preview{background:radial-gradient(circle at 50% 55%,#ffffff00,#0b2d4a55)}
 body.arcade .preview-top h2{font-family:'Lalezar',sans-serif;font-weight:400;-webkit-text-stroke:1px var(--ink);text-shadow:0 3px 0 var(--ink)}
+/* Defence mode (Mob-Control style): castle hearts, coins, stage picker, upgrade shop. */
+.pill{display:flex;align-items:center;gap:6px;padding:4px 12px;border:3px solid #0f3550;border-radius:16px;box-shadow:0 4px 0 #0f3550;font-family:'Lilita One','Arial Black',sans-serif;font-size:24px;line-height:1}
+.pill b{font-weight:400;-webkit-text-stroke:2px #0f3550;paint-order:stroke fill}
+.base-pill{background:linear-gradient(#ff7b6e,#d22d3a);pointer-events:none}
+.base-pill.hurt{animation:hurt .35s}
+@keyframes hurt{30%{transform:scale(1.25) rotate(-6deg)}}
+.coin{display:inline-block;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6b0,#ffd23a 45%,#d48a00);border:2px solid #7a4a00;vertical-align:middle}
+.coin-line{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;background:#0f3550cc;border-radius:16px;font-family:'Lilita One','Arial Black',sans-serif;font-size:24px;direction:ltr}
+.coin-line b{font-weight:400;color:#ffe27a}
+#defense-menu{pointer-events:auto;margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:12px}
+#stage-picker{display:flex;gap:10px;justify-content:center}
+#stage-picker button{width:58px;height:58px;border-radius:16px;border:3px solid #0f3550;background:#fff;color:#0f3550;font-family:'Lilita One','Arial Black',sans-serif;font-size:28px;box-shadow:0 4px 0 #0f3550}
+#stage-picker button[aria-pressed=true]{background:linear-gradient(#ffe27a,#f5a623);transform:translateY(-3px)}
+#stage-picker button:disabled{background:#8aa0b0;color:#e9eef2;opacity:.8;cursor:not-allowed}
+#open-upgrades,#result-upgrades,#next-stage,#close-upgrades{font-family:'Lalezar',sans-serif;font-size:22px;padding:8px 26px 11px;border:3px solid #0f3550;border-radius:16px;box-shadow:0 4px 0 #0f3550;background:#fff;color:#0f3550;pointer-events:auto;margin:6px}
+#next-stage{background:linear-gradient(#63e59a,#1f9a4c);color:#fff;text-shadow:0 2px 0 #0f3550;font-size:26px}
+#result-coins{font-family:'Lilita One',sans-serif;font-size:30px;color:#ffe27a;direction:ltr;margin:0 0 14px!important;display:flex;align-items:center;gap:8px;justify-content:center}
+#result-coins b{font-weight:400;-webkit-text-stroke:2px #0f3550;paint-order:stroke fill}
+#upgrades{background:#0b2d4ae6;justify-content:flex-start;gap:14px;pointer-events:auto;z-index:3;overflow:auto;padding-top:calc(24px + env(safe-area-inset-top))}
+.upgrades-top{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:420px}
+.upgrades-top h2{font-family:'Lalezar',sans-serif;font-weight:400;font-size:40px;margin:0;text-shadow:0 4px 0 #0f3550}
+#upgrade-list{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:420px}
+.upgrade-card{background:#fff;color:#0f3550;border:3px solid #0f3550;border-radius:18px;box-shadow:0 5px 0 #0f3550;padding:10px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:'Lalezar',sans-serif}
+.upgrade-card .icon{font-size:30px;line-height:1}
+.upgrade-card h3{margin:0;font-weight:400;font-size:20px}
+.upgrade-card .lvl{font-family:'Lilita One',sans-serif;font-size:14px;color:#5b7486}
+.upgrade-card .gain{font-size:16px;color:#1f9a4c;direction:rtl}
+.upgrade-card button{margin-top:4px;display:flex;align-items:center;gap:6px;font-family:'Lilita One',sans-serif;font-size:20px;padding:5px 14px;border-radius:12px;border:3px solid #0f3550;background:linear-gradient(#ffe27a,#f5a623);color:#0f3550;box-shadow:0 3px 0 #0f3550;direction:ltr}
+.upgrade-card button:disabled{background:#c9d3da;color:#7b8b96;cursor:not-allowed}
+#breach-flash{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 -120px 90px -40px #ff2a2a;opacity:0;transition:opacity .4s}
+#breach-flash.on{opacity:1;transition:none}
+#barrel-tags .world-tag b{font-size:26px;background:linear-gradient(#ffcf5a,#e08a12);border:3px solid #5a3200;border-radius:12px;padding:1px 10px 3px;-webkit-text-stroke:3px #5a3200;text-shadow:0 3px 0 #5a3200}
+#barrel-tags .world-tag small{display:block;margin-top:3px;font-family:'Lilita One','Lalezar',sans-serif;font-size:16px;color:#fff;-webkit-text-stroke:2px #0f3550;paint-order:stroke fill}
+body.defense #preview-soldier{display:none}
+body.defense .start-prompt p{margin-bottom:6px}
+body.arcade #gate-feedback.bad{color:#ffd6d0;-webkit-text-stroke-color:#7a0a14;text-shadow:0 6px 0 #7a0a14,0 0 30px #ff4a4a}

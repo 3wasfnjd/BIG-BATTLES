@@ -5,6 +5,7 @@ import { CHARACTERS } from '../data/characters.js';
 import { CONFIG } from '../core/Config.js';
 import { softDirectionalShadow } from './QualityGeometry.js';
 const CORPSE_LIMIT = 32;
+export const BRUTE_CAPACITY = CONFIG.maxBrutes;
 export class CharacterVisualFactory {
   constructor(scene, { loadModels = true, definitions = CHARACTERS, quality = false, procedural = null } = {}) {
     this.definitions = definitions; this.procedural = procedural;
@@ -20,7 +21,7 @@ export class CharacterVisualFactory {
     this.shadows.frustumCulled = false; this.shadows.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(this.shadows);
   }
   addBatch(type) {
-    const capacity = type === 'enemyGrunt' ? CONFIG.maxEnemyUnits : ['recruit', 'elite'].includes(type) ? CONFIG.maxPlayerUnits : 1;
+    const capacity = type === 'enemyGrunt' ? CONFIG.maxEnemyUnits : type === 'enemyBrute' ? BRUTE_CAPACITY : ['recruit', 'elite'].includes(type) ? CONFIG.maxPlayerUnits : 1;
     const batch = { type, capacity, meshes: [], frames: [], clips: {}, count: 0, custom: false, animated: null, action: null, loadState: 'placeholder' };
     if (this.procedural) {
       // Procedural chibi poses are ready synchronously; no GLB request or fallback swap.

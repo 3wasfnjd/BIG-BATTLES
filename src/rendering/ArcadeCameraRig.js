@@ -6,8 +6,8 @@ export const ARCADE_PITCH = 54 * Math.PI / 180;
 export const ARCADE_FOV = 44;
 const SIN = Math.sin(ARCADE_PITCH), COS = Math.cos(ARCADE_PITCH), TAN = Math.tan(ARCADE_FOV / 2 * Math.PI / 180);
 
-export function arcadeCameraPose(progress, depth, halfWidth, armyX, aspect, enemies = []) {
-  const targetX = armyX * 0.35, targetY = 0, targetZ = -progress - 7.5 + depth * 0.3;
+export function arcadeCameraPose(progress, depth, halfWidth, armyX, aspect, enemies = [], ahead = 7.5) {
+  const targetX = armyX * 0.35, targetY = 0, targetZ = -progress - ahead + depth * 0.3;
   let distance = 17;
   // Vertical limits are asymmetric: the army may use the lower 80% of the half-height,
   // the view ahead keeps the top of the screen.
@@ -28,14 +28,14 @@ export function arcadeCameraPose(progress, depth, halfWidth, armyX, aspect, enem
 }
 
 export class ArcadeCameraRig {
-  constructor(camera) { this.camera = camera; camera.fov = ARCADE_FOV; camera.far = 200; camera.updateProjectionMatrix(); this.reset(0); }
+  constructor(camera, { ahead = 7.5 } = {}) { this.camera = camera; this.ahead = ahead; camera.fov = ARCADE_FOV; camera.far = 200; camera.updateProjectionMatrix(); this.reset(0); }
   reset(depth) { this.z = 0; this.depth = depth; this.distance = null; this.x = 0; this.shake = 0; }
   kick(amount) { this.shake = Math.max(this.shake, amount); }
   update(army, dt, enemies = []) {
     this.z += (army.center.z - this.z) * ease(9, dt);
     this.x += (army.center.x - this.x) * ease(6, dt);
     this.depth += (army.depth - this.depth) * ease(army.depth > this.depth ? 12 : 2, dt);
-    const pose = arcadeCameraPose(this.z, Math.max(army.depth, this.depth), army.halfWidth, this.x, this.camera.aspect, enemies);
+    const pose = arcadeCameraPose(this.z, Math.max(army.depth, this.depth), army.halfWidth, this.x, this.camera.aspect, enemies, this.ahead);
     this.distance = this.distance === null ? pose.distance : Math.max(pose.distance, this.distance + (pose.distance - this.distance) * ease(2.5, dt));
     this.shake = Math.max(0, this.shake - dt * 2.5);
     const jitter = this.shake * this.shake;
