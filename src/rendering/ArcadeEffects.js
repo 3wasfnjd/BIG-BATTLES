@@ -58,6 +58,9 @@ export class ArcadeEffects {
     this.halos = instanced(flat.clone().scale(0.7, 1, 3.2).translate(0, 0, 1.0), additive(trail), CONFIG.projectileCapacity, scene);
     this.muzzles = instanced(flat, additive(star), CONFIG.maxPlayerUnits + CONFIG.maxEnemyUnits, scene);
     this.flashes = instanced(flat, additive(star), CONFIG.impactCapacity, scene);
+    // Dust ring that expands where a unit falls.
+    this.puffs = instanced(new THREE.RingGeometry(0.55, 1, 20).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.45, depthWrite: false }), CONFIG.impactCapacity, scene);
+    this.dust = { enemy: new THREE.Color('#f3d2b8'), player: new THREE.Color('#d8f3df'), prop: new THREE.Color('#ffe7a0') };
     this.sparks = instanced(flat.clone().scale(0.5, 1, 1.6), additive(glow), CONFIG.impactCapacity * SPARKS_PER_HIT, scene);
     this.pool = new ObjectPool(CONFIG.impactCapacity, () => ({ sparks: Array.from({ length: SPARKS_PER_HIT }, () => ({ vx: 0, vz: 0, vy: 0 })) }));
     // Boss/beast telegraph: glowing ring plus a soft filled disc.
@@ -69,8 +72,8 @@ export class ArcadeEffects {
   }
   hit(unit, died) {
     const effect = this.pool.acquire(); if (!effect) return;
-    const big = unit.type === 'giantBoss' || unit.type === 'desertBeast';
-    Object.assign(effect, { x: unit.x + (Math.random() - 0.5) * (big ? 1.2 : 0.2), z: unit.z, y: big ? 1 + Math.random() * 1.6 : 0.55, life: died ? 0.42 : 0.2, maxLife: died ? 0.42 : 0.2, team: unit.team, died, big });
+    const big = unit.type === 'giantBoss' || unit.type === 'desertBeast' || (died && unit.type === 'barrel');
+    Object.assign(effect, { x: unit.x + (Math.random() - 0.5) * (big ? 1.2 : 0.2), z: unit.z, y: big ? 1 + Math.random() * 1.6 : 0.55, life: died ? 0.42 : 0.2, maxLife: died ? 0.42 : 0.2, team: unit.team, died, big, prop: !!unit.isProp });
     for (const spark of effect.sparks) {
       const a = Math.random() * Math.PI * 2, speed = (died ? 4.5 : 3) * (0.5 + Math.random());
       spark.vx = Math.cos(a) * speed; spark.vz = Math.sin(a) * speed; spark.vy = 1.5 + Math.random() * 2.5;
@@ -101,20 +104,24 @@ export class ArcadeEffects {
     flush(this.muzzles, count);
     // Impacts: flash + sparks with gravity.
     for (let i = this.pool.active.length - 1; i >= 0; i--) { const e = this.pool.active[i]; e.life -= dt; if (e.life <= 0) this.pool.releaseAt(i); }
-    let flashes = 0, sparks = 0;
+    let flashes = 0, sparks = 0, puffs = 0;
     for (const e of this.pool.active) {
       const k = e.life / e.maxLife, age = e.maxLife - e.life;
       const color = e.died ? (e.team === 'enemy' ? this.colors.death : this.colors.playerDeath) : e.team === 'enemy' ? this.colors.playerHit : this.colors.enemyHit;
       d.position.set(e.x, e.y, -e.z); d.rotation.set(0, e.x * 7 + age * 6, 0);
       d.scale.setScalar((e.died ? 2.2 : e.big ? 1.6 : 1.1) * (0.4 + (1 - k) * 0.9) * (0.4 + k * 0.6)); d.updateMatrix();
       this.flashes.setMatrixAt(flashes, d.matrix); this.flashes.setColorAt(flashes++, color);
+      if (e.died) {
+        d.position.set(e.x, 0.05, -e.z); d.rotation.set(0, 0, 0); d.scale.setScalar((e.big ? 3.2 : 0.9) * (0.3 + (1 - k) * 1.1)); d.updateMatrix();
+        this.puffs.setMatrixAt(puffs, d.matrix); this.puffs.setColorAt(puffs++, this.color.copy(e.prop ? this.dust.prop : this.dust[e.team] || this.dust.enemy).multiplyScalar(k));
+      }
       for (const s of e.sparks) {
         d.position.set(e.x + s.vx * age, Math.max(0.05, e.y + s.vy * age - 9 * age * age), -e.z + s.vz * age);
         d.rotation.set(0, Math.atan2(s.vx, s.vz), 0); d.scale.setScalar(0.35 * k + 0.05); d.updateMatrix();
         this.sparks.setMatrixAt(sparks, d.matrix); this.sparks.setColorAt(sparks++, color);
       }
     }
-    flush(this.flashes, flashes); flush(this.sparks, sparks);
+    flush(this.flashes, flashes); flush(this.sparks, sparks); flush(this.puffs, puffs);
     // Telegraph: ring at full radius, inner fill grows with the wind-up.
     const attacker = enemies.find(unit => unit.alive && unit.telegraph);
     for (const mesh of [this.ring, this.disc, this.fill]) mesh.visible = !!attacker;
@@ -129,7 +136,7 @@ export class ArcadeEffects {
   takeShake() { const s = this.shake; this.shake = 0; return s; }
   clear() {
     this.pool.clear(true);
-    for (const mesh of [this.bolts, this.trails, this.halos, this.muzzles, this.flashes, this.sparks]) flush(mesh, 0);
+    for (const mesh of [this.bolts, this.trails, this.halos, this.muzzles, this.flashes, this.sparks, this.puffs]) flush(mesh, 0);
     for (const mesh of [this.ring, this.disc, this.fill]) mesh.visible = false;
   }
 }

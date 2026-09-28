@@ -7,7 +7,7 @@ import { Progress } from './Progress.js';
 import { InputSystem } from '../systems/InputSystem.js';
 import { CharacterVisualFactory } from '../rendering/CharacterVisualFactory.js';
 import { ChibiFactory } from '../rendering/ChibiFactory.js';
-import { ArcadeEnvironment } from '../rendering/ArcadeEnvironment.js';
+import { ThemedEnvironment, THEMES, STAGE_THEME } from '../rendering/StageThemes.js';
 import { ArcadeEffects } from '../rendering/ArcadeEffects.js';
 import { ArcadeCameraRig } from '../rendering/ArcadeCameraRig.js';
 import { DefenseProps, choiceLabel } from '../rendering/DefenseProps.js';
@@ -16,6 +16,7 @@ import { ARCADE_CHARACTERS } from '../rendering/VisualProfiles.js';
 import { DEFENSE_STAGES } from '../data/defenseStages.js';
 import { UPGRADES } from '../data/upgrades.js';
 import { clamp } from './Config.js';
+import { COIN_VALUE } from './DefenseSimulation.js';
 
 const ICONS = { soldiers: '🛡️', damage: '🏹', fireRate: '⚡', fort: '🏰' };
 const AR_DIGITS = ['١', '٢', '٣', '٤', '٥'];
@@ -27,7 +28,7 @@ export class DefenseGame {
     const $ = id => document.getElementById(id);
     this.ui = Object.fromEntries(['game', 'scene', 'hud', 'start', 'result', 'result-title', 'result-note', 'result-coins', 'army-count', 'progress', 'pause', 'paused', 'replay', 'gate-feedback', 'debug',
       'army-tag', 'giant-tag', 'horde-tag', 'base-meter', 'base-hp', 'stage-label', 'defense-menu', 'menu-coins', 'stage-picker', 'open-upgrades', 'upgrades', 'upgrade-coins', 'upgrade-list',
-      'close-upgrades', 'result-upgrades', 'next-stage', 'breach-flash', 'barrel-tags', 'load-status', 'load-line'].map(id => [id, $(id)]));
+      'close-upgrades', 'result-upgrades', 'next-stage', 'breach-flash', 'barrel-tags', 'load-status', 'load-line', 'float-layer', 'banner', 'confetti'].map(id => [id, $(id)]));
     this.debug = new URLSearchParams(location.search).get('debug') === '1';
     this.ui.debug.hidden = !this.debug;
     document.body.classList.add('arcade', 'defense');
@@ -41,22 +42,30 @@ export class DefenseGame {
     const sky = '#7fcbe6';
     this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(sky); this.scene.fog = new THREE.Fog(sky, 60, 130);
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
-    this.scene.add(new THREE.HemisphereLight('#fdfbf5', '#8d8a80', 1.15));
-    const sun = new THREE.DirectionalLight('#fff0d6', 3.1); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -0.0015; sun.shadow.normalBias = 0.04;
+    this.hemi = new THREE.HemisphereLight('#fdfbf5', '#8d8a80', 1.15); this.scene.add(this.hemi);
+    const sun = this.sun = new THREE.DirectionalLight('#fff0d6', 3.1); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -0.0015; sun.shadow.normalBias = 0.04;
     Object.assign(sun.shadow.camera, { left: -18, right: 18, top: 34, bottom: -24, near: 1, far: 80 }); sun.shadow.camera.updateProjectionMatrix();
     sun.position.set(-9, 22, 2); sun.target.position.set(0, 0, -14); this.scene.add(sun, sun.target);
 
     this.chibi = new ChibiFactory();
     this.visuals = new CharacterVisualFactory(this.scene, { definitions: ARCADE_CHARACTERS, procedural: this.chibi });
-    this.environment = new ArcadeEnvironment(this.scene, 52);
+    this.applyTheme();
     this.effects = new ArcadeEffects(this.scene);
     this.props = new DefenseProps(this.scene, this.chibi.model('recruit').frames[0].parts);
     this.cameraRig = new ArcadeCameraRig(this.camera, { ahead: 12 });
     this.labels = new WorldLabels(this.camera, { army: this.ui['army-tag'], giant: this.ui['giant-tag'] });
-    this.barrelTags = [];
+    this.barrelTags = []; this.floats = []; this.floatVector = new THREE.Vector3(); this.giantDamage = new Map();
+    // Glowing command ring under the commander.
+    this.commandRing = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.75, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd24a', transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+    this.commandRing.renderOrder = 1; this.scene.add(this.commandRing);
 
     this.sim = new DefenseSimulation({
-      onHit: (unit, died) => { this.effects.hit(unit, died); if (died && !unit.isProp) this.visuals.die(unit); },
+      onHit: (unit, died) => {
+        this.effects.hit(unit, died); if (died && !unit.isProp) this.visuals.die(unit);
+        // Coin pops: every giant, brutes at most a few per second so big fights stay readable.
+        if (died && unit.team === 'enemy' && COIN_VALUE[unit.type] >= 4 && (unit.aiState || this.sceneTime - (this.lastCoinPop || -1) > 0.3)) { this.lastCoinPop = this.sceneTime; this.floatText(`+${COIN_VALUE[unit.type]}`, unit.x, unit.aiState ? 3 : 1.6, unit.z, 'coin'); }
+      },
+      onSpawn: event => this.announce(event),
       onGate: (row, choice, added) => this.feedback(choice.type.startsWith('army') ? (added >= 0 ? `+${added}` : `${added}`) : choiceLabel(choice), added < 0),
       onBarrel: (barrel, added) => this.feedback(barrel.reward.type === 'army_add' ? `+${added}` : choiceLabel(barrel.reward)),
       onBreach: () => this.breach(),
@@ -90,25 +99,40 @@ export class DefenseGame {
     this.resize(); this.loop = new GameLoop(dt => this.sim.update(dt), (dt, raw) => this.render(dt, raw)); this.loop.start();
   }
   get stage() { return DEFENSE_STAGES[this.stageId - 1]; }
+  // Each stage has its own world: sky, fog, lights, ground, scenery and particles.
+  applyTheme() {
+    const name = STAGE_THEME[(this.stageId - 1) % STAGE_THEME.length];
+    if (this.themeName === name) return;
+    this.themeName = name; const theme = THEMES[name];
+    this.environment?.dispose();
+    this.environment = new ThemedEnvironment(this.scene, 52, name);
+    this.scene.background.set(theme.sky); this.scene.fog.color.set(theme.sky); [this.scene.fog.near, this.scene.fog.far] = theme.fog;
+    this.hemi.color.set(theme.hemi[0]); this.hemi.groundColor.set(theme.hemi[1]); this.hemi.intensity = theme.hemi[2];
+    this.sun.color.set(theme.sun[0]); this.sun.intensity = theme.sun[1];
+    this.renderer.toneMappingExposure = theme.exposure;
+    document.body.dataset.theme = name; document.documentElement.style.setProperty('--vignette', theme.vignette);
+    document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme.sky);
+  }
   resize() {
     const rect = this.ui.game.getBoundingClientRect(); this.renderer.setSize(rect.width, rect.height, false);
     this.camera.aspect = rect.width / Math.max(1, rect.height); this.camera.updateProjectionMatrix();
   }
   startOrResume() {
     if (!this.ui.upgrades.hidden) return;
-    if (this.sim.state === 'ready' && !this.ui.start.hidden) { this.sim.start(); this.ui.start.hidden = true; this.ui.hud.hidden = false; this.ui['base-meter'].hidden = false; }
+    if (this.sim.state === 'ready' && !this.ui.start.hidden) { this.sim.start(); this.ui.start.hidden = true; this.ui.hud.hidden = false; this.ui['base-meter'].hidden = false; this.banner(`المرحلة ${AR_DIGITS[this.stageId - 1]}`, this.stage.name, 'stage'); }
     else if (this.sim.state === 'paused') { this.sim.state = 'playing'; this.ui.paused.hidden = true; this.loop.resetClock(); }
   }
   pause() { if (this.sim.state === 'playing') { this.sim.state = 'paused'; this.ui.paused.hidden = false; this.input.reset(); } }
   // Rebuild the stage (also applies newly bought upgrades) and return to the start screen.
   restart(stageId, autoStart = true) {
-    this.stageId = stageId; this.progress.select(stageId);
+    this.stageId = stageId; this.progress.select(stageId); this.applyTheme();
     this.sim.reset(this.stage, this.progress.levels);
     this.effects.clear(); this.visuals.clear(); this.props.clear(); this.input.reset(); this.labels.hide();
     for (const tag of this.barrelTags) tag.hidden = true;
     this.cameraRig.reset(this.sim.army.depth); this.lastCount = -1; this.lastBase = -1;
     this.ui.result.hidden = true; this.ui.paused.hidden = true; this.ui['gate-feedback'].classList.remove('show');
     this.renderMenu();
+    this.giantDamage.clear(); for (const f of this.floats) f.el.hidden = true; this.ui.confetti.textContent = '';
     if (autoStart) { this.ui.start.hidden = false; this.startOrResume(); } else { this.ui.start.hidden = false; this.ui.hud.hidden = true; }
     this.loop.resetClock();
   }
@@ -171,6 +195,54 @@ export class DefenseGame {
     this.ui['next-stage'].hidden = !victory || last;
     this.ui['result-upgrades'].hidden = false;
     this.ui.replay.textContent = victory ? 'إعادة' : 'حاول مجددًا';
+    if (victory) this.confetti();
+  }
+  // Pooled DOM pop-ups pinned to a world position: coins, damage on giants.
+  floatText(text, x, y, z, kind) {
+    let f = this.floats.find(item => item.life <= 0);
+    if (!f) {
+      if (this.floats.length >= 24) return;
+      const el = document.createElement('span'); el.hidden = true; this.ui['float-layer'].append(el);
+      f = { el, life: 0 }; this.floats.push(f);
+    }
+    Object.assign(f, { x, y, z, life: 0.9, kind });
+    f.el.className = `float ${kind}`; f.el.textContent = text; f.el.hidden = false;
+  }
+  updateFloats(dt) {
+    const w = this.ui.game.clientWidth, h = this.ui.game.clientHeight;
+    // Summarise damage on each giant a few times a second.
+    for (const giant of this.sim.enemies) if (giant.aiState && giant.alive) {
+      const seen = this.giantDamage.get(giant) ?? { health: giant.health, timer: 0 };
+      seen.timer -= dt;
+      if (seen.timer <= 0) { const lost = Math.round(seen.health - giant.health); if (lost > 0) this.floatText(`-${lost}`, giant.x + (Math.random() - 0.5) * 2, giant.type === 'giantBoss' ? 4.6 : 2.8, giant.z, 'dmg'); seen.health = giant.health; seen.timer = 0.35; }
+      this.giantDamage.set(giant, seen);
+    }
+    for (const f of this.floats) {
+      if (f.life <= 0) continue;
+      f.life -= dt;
+      if (f.life <= 0) { f.el.hidden = true; continue; }
+      const v = this.floatVector.set(f.x, f.y, -f.z).project(this.camera), t = 1 - f.life / 0.9;
+      f.el.style.transform = `translate(${((v.x + 1) / 2 * w).toFixed(1)}px, ${((1 - v.y) / 2 * h - t * 60).toFixed(1)}px) translate(-50%, -50%) scale(${(t < 0.15 ? 0.6 + t * 3 : 1.05).toFixed(2)})`;
+      f.el.style.opacity = Math.min(1, f.life * 3).toFixed(2);
+    }
+  }
+  banner(title, subtitle = '', kind = 'wave') {
+    const el = this.ui.banner; el.querySelector('b').textContent = title; el.querySelector('small').textContent = subtitle;
+    el.className = kind; void el.offsetWidth; el.classList.add('show');
+  }
+  announce(event) {
+    if (event.type === 'boss') { this.banner('⚠ الزعيم قادم', 'دمّره قبل أن يسحق جيشك', 'boss'); this.cameraRig.kick(0.8); }
+    else if (event.type === 'beast') { this.banner('وحش صخري!', 'ركّز السهام عليه', 'boss'); this.cameraRig.kick(0.5); }
+    else if (event.type === 'horde' && event.count >= 100) this.banner('موجة ضخمة!', `${event.count} محارب`, 'wave');
+  }
+  confetti() {
+    const box = this.ui.confetti, colors = ['#ffd24a', '#2fae5b', '#ffffff', '#ff6a5c', '#5fc8ff'];
+    box.textContent = '';
+    for (let i = 0; i < 60; i++) {
+      const piece = document.createElement('i');
+      piece.style.cssText = `left:${Math.random() * 100}%;background:${colors[i % colors.length]};animation-delay:${(Math.random() * 0.8).toFixed(2)}s;animation-duration:${(2.2 + Math.random() * 1.6).toFixed(2)}s;--spin:${Math.round(Math.random() * 720 - 360)}deg;--drift:${Math.round(Math.random() * 120 - 60)}px`;
+      box.append(piece);
+    }
   }
   barrelTag(i) {
     if (!this.barrelTags[i]) {
@@ -202,15 +274,19 @@ export class DefenseGame {
   render(dt, raw) {
     const { army } = this.sim;
     const animDt = this.sim.state === 'paused' ? 0 : dt; this.sceneTime += animDt;
+    const leader = army.units.find(u => u.type === 'commander');
+    this.commandRing.visible = !!leader;
+    if (leader) { this.commandRing.position.set(leader.x, 0.05, -leader.z); this.commandRing.rotation.y += animDt; this.commandRing.scale.setScalar(1.6 + Math.sin(this.sceneTime * 4) * 0.12); }
     const shake = this.effects.takeShake(); if (shake) this.cameraRig.kick(shake);
     this.cameraRig.update(army, animDt, this.sim.enemies);
-    this.environment.update(0, this.sceneTime, this.scene.fog);
+    this.environment.update(0, this.sceneTime, this.scene.fog, animDt);
     this.props.update(this.sim, animDt);
     this.visuals.update(army.units, this.sim.enemies, this.sceneTime, animDt);
     this.effects.update(this.sim.projectiles.pool.active, army, this.sim.enemies, animDt, this.sceneTime, this.camera);
     if (this.feedbackTimer > 0) { this.feedbackTimer -= animDt; if (this.feedbackTimer <= 0) this.ui['gate-feedback'].classList.remove('show'); }
     this.renderer.render(this.scene, this.camera);
     if (!this.ui.hud.hidden) this.updateLabels(this.ui.game.clientWidth, this.ui.game.clientHeight);
+    this.updateFloats(animDt);
     if (!document.hidden && this.sim.state === 'playing') this.performance.update(raw);
     this.uiTimer -= dt;
     if (this.uiTimer <= 0) { this.updateUI(); this.uiTimer = 0.1; }
