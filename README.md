@@ -26,6 +26,8 @@ The game now plays like Mob Control: **your army holds its line and only slides 
 | Stage 4 | lose | lose | lose | lose | lose | lose | win |
 
   **Stage 4 معقل الظلام** (added later the same day): 6 castle hearts, three rock golems, a 60,000 HP boss, red gates down to -60 and hordes of up to 200. **Faster tempo** for every stage: timelines run 25% sooner, walkers and giants move 22% faster, gates and barrels travel at 6.8 m/s (was 5.2).
+- **Stage worlds** (`src/rendering/StageThemes.js`): each stage has its own biome, sky, fog, lighting, paving, animated ground shader, scenery and particles. Stage 1 is a sea bridge with drifting cloud shadows, stage 2 a red canyon with mesas and dust, stage 3 a snow pass with pines and falling snow, and stage 4 a lava fortress with glowing seams, crystals and rising embers.
+- **Feedback effects**: damage numbers over giants, coin pop-ups for brutes and giants, dust rings where units fall, bigger barrel bursts, a glowing ring under the commander, stage/wave/boss announcement banners with camera kick, a themed vignette and victory confetti.
 - Also fixed: a stage could end as a victory while a gate or barrel was still approaching.
 
 Validation: 46 Node tests pass (7 new: fixed line, rising difficulty, gate charging/negative gates, barrel rewards and castle breaches, brute trades, save/load, brute instancing). Both modes load in headless Chromium without errors. Phone FPS is still unmeasured.

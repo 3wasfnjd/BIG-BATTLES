@@ -85,3 +85,21 @@ body.arcade .preview-top h2{font-family:'Lalezar',sans-serif;font-weight:400;-we
 body.defense #preview-soldier{display:none}
 body.defense .start-prompt p{margin-bottom:6px}
 body.arcade #gate-feedback.bad{color:#ffd6d0;-webkit-text-stroke-color:#7a0a14;text-shadow:0 6px 0 #7a0a14,0 0 30px #ff4a4a}
+/* Soft themed vignette over the battlefield (defence mode). */
+body.defense #game::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,transparent 55%,var(--vignette,#0b3a5a) 140%);opacity:.55;z-index:0}
+body.defense #hud,body.defense .screen,body.defense #upgrades{z-index:2}
+/* Pop-up numbers, announcements and confetti (defence mode). */
+#float-layer{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:hidden}
+#float-layer .float{direction:ltr;unicode-bidi:isolate;position:absolute;left:0;top:0;font-family:'Lilita One','Arial Black',sans-serif;font-size:26px;color:#fff;-webkit-text-stroke:4px #0f3550;paint-order:stroke fill;white-space:nowrap;will-change:transform,opacity}
+#float-layer .float.coin{color:#ffe27a;-webkit-text-stroke-color:#6a3a00}
+#float-layer .float.coin::after{content:'';display:inline-block;width:18px;height:18px;margin-left:4px;border-radius:50%;vertical-align:-2px;background:radial-gradient(circle at 35% 30%,#fff6b0,#ffd23a 45%,#d48a00);border:2px solid #7a4a00}
+#float-layer .float.dmg{font-size:30px;color:#ffeb8a;-webkit-text-stroke-color:#5a0a10}
+#banner{position:absolute;top:22%;left:0;right:0;text-align:center;pointer-events:none;z-index:2;opacity:0}
+#banner b{display:inline-block;font-family:'Lalezar','Lilita One',sans-serif;font-weight:400;font-size:46px;color:#fff;padding:4px 30px 10px;border-radius:18px;background:linear-gradient(90deg,transparent,#0f3550d9 18%,#0f3550d9 82%,transparent);-webkit-text-stroke:2px #0f3550;paint-order:stroke fill;text-shadow:0 4px 0 #0f3550}
+#banner small{display:block;margin-top:4px;font-family:'Lalezar',sans-serif;font-size:20px;color:#ffe27a;text-shadow:0 2px 0 #0f3550}
+#banner.boss b{background:linear-gradient(90deg,transparent,#7a0a14e6 18%,#7a0a14e6 82%,transparent);-webkit-text-stroke-color:#3a0006;text-shadow:0 4px 0 #3a0006}
+#banner.show{animation:banner 2.2s cubic-bezier(.2,1.4,.4,1) forwards}
+@keyframes banner{0%{opacity:0;transform:scale(1.8)}12%{opacity:1;transform:scale(1)}80%{opacity:1;transform:scale(1)}100%{opacity:0;transform:translateY(-24px) scale(.95)}}
+#confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:3}
+#confetti i{position:absolute;top:-20px;width:9px;height:15px;border-radius:2px;animation:confetti linear forwards}
+@keyframes confetti{to{transform:translate(var(--drift),110vh) rotate(var(--spin))}}

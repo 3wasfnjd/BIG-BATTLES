@@ -79,3 +79,9 @@ test('brutes render in their own bounded instanced batch', () => {
   visuals.update(sim.army.units, sim.enemies, 0, 1 / 60);
   assert.equal(visuals.batches.get('enemyBrute').count, 20); assert.equal(visuals.batches.get('enemyGrunt').count, 40);
 });
+
+test('every stage has its own visual theme', async () => {
+  const { THEMES, STAGE_THEME } = await import('../src/rendering/StageThemes.js');
+  assert.equal(new Set(STAGE_THEME.slice(0, DEFENSE_STAGES.length)).size, DEFENSE_STAGES.length);
+  for (const name of STAGE_THEME) for (const key of ['sky', 'fog', 'hemi', 'sun', 'paving', 'ground', 'stone', 'fort', 'scatter']) assert.ok(THEMES[name][key] !== undefined, `${name}.${key}`);
+});
