@@ -56,6 +56,16 @@ The game now plays like Mob Control: **your army holds its line and only slides 
 
 ![Look and weapons](docs/defense/weapons.jpg)
 
+- **Stages 8–12 and new bosses** (added 2026-09-28): 8 كثبان الغروب, 9 نهر الجليد, 10 غابة الأدغال, 11 فوهة البركان, 12 عرش الظلال, each with its own world. Four new bosses (`src/systems/BossSystem.js`) each give a clear ground warning before they strike:
+  - 🐉 **Dragon**: hovers at range and breathes fire down a whole lane of the army.
+  - ❄ **Yeti**: hurls ice boulders at a circle inside the army.
+  - 💀 **Warlock**: stays back and keeps summoning new warriors.
+  - 🐘 **War elephant**: charges straight through the line, trampling a lane, then turns back.
+
+  The shield power blocks boss strikes. Stage 12 brings the warlock, yeti, dragon and armoured boss together. Upgrade caps rose to 20 (castle hearts to 15), and costs grow gently after level 10. The scripted player needs levels 0/2/4/8/9/10/11/12/13/14/15/16 for stages 1–12.
+
+![New bosses](docs/defense/bosses.jpg)
+
 - **Clash effects**: when a walker reaches the line, a white-gold burst with fast metal sparks appears, and a brute adds a camera kick.
 - **Feedback effects**: damage numbers over giants, coin pop-ups for brutes and giants, dust rings where units fall, bigger barrel bursts, a glowing ring under the commander, stage/wave/boss announcement banners with camera kick, a themed vignette and victory confetti.
 - Also fixed: a stage could end as a victory while a gate or barrel was still approaching.

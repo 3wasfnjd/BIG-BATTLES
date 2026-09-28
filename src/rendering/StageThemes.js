@@ -64,8 +64,43 @@ export const THEMES = {
     stone: ['#2e2226', '#4a363c'], pillarCap: '#ff2a3a', fort: ['#1c1216', '#34242a', '#b01020'],
     scatter: 'spire', particles: { color: '#ff4a4a', count: 180, size: 0.14, fall: -1.2, drift: 1, additive: true, opacity: 1 }, clouds: 0, moon: true,
   },
+  dunes: {
+    sky: '#f6a45e', fog: [45, 115], exposure: 1.06, hemi: ['#ffe2c0', '#a0583a', 1.1], sun: ['#ffc48a', 2.9], vignette: '#5a1a2a',
+    paving: { bg: '#8e6a4c', tone: 190, spread: 30, warm: 30 },
+    ground: { a: '#f0b870', b: '#c47a44', hi: '#ffe0b0', glint: 0.2, edge: '#f8d8a0', edgeStrength: 0.3, speed: 0.05, glow: 0 },
+    stone: ['#c98a5a', '#e8b07a'], pillarCap: '#e2553a', fort: ['#a8684a', '#c98a5a', '#7a1a2a'],
+    scatter: 'mesa', particles: { color: '#ffe0b0', count: 120, size: 0.12, fall: -0.2, drift: 2.2, additive: false, opacity: 0.55 }, clouds: 0.06,
+  },
+  glacier: {
+    sky: '#9fd4ee', fog: [40, 110], exposure: 1.05, hemi: ['#f0faff', '#6a9ac0', 1.35], sun: ['#e8f6ff', 2.4], vignette: '#0a3050',
+    paving: { bg: '#5a8aa8', tone: 190, spread: 24, warm: -24 },
+    ground: { a: '#d8f2ff', b: '#6ab0dc', hi: '#ffffff', glint: 1, edge: '#ffffff', edgeStrength: 0.35, speed: 0.2, glow: 0 },
+    stone: ['#a6d4ee', '#e6f6ff'], pillarCap: '#6fe0ff', fort: ['#7aa8c8', '#d6eefa', '#2a5a9a'],
+    scatter: 'spire', particles: { color: '#ffffff', count: 200, size: 0.13, fall: 1.2, drift: 0.8, additive: false, opacity: 0.9 }, clouds: 0.06,
+  },
+  jungle: {
+    sky: '#8fd3a8', fog: [35, 100], exposure: 1.05, hemi: ['#f0ffe8', '#3a6a3a', 1.2], sun: ['#fff4d0', 2.6], vignette: '#062a10',
+    paving: { bg: '#5a6a4a', tone: 150, spread: 30, warm: 8 },
+    ground: { a: '#3fa65a', b: '#1f6a38', hi: '#b8ff9a', glint: 0.2, edge: '#7ad48a', edgeStrength: 0.4, speed: 0.1, glow: 0 },
+    stone: ['#8a9a6a', '#b0bf8a'], pillarCap: '#e8c040', fort: ['#6a7a4a', '#8a9a6a', '#b0302a'],
+    scatter: 'palm', particles: { color: '#e8ff9a', count: 90, size: 0.12, fall: -0.15, drift: 1.4, additive: true, opacity: 0.9 }, clouds: 0.14,
+  },
+  volcano: {
+    sky: '#4a3232', fog: [35, 100], exposure: 1.1, hemi: ['#ffd0b0', '#3a1a10', 1.0], sun: ['#ffb070', 2.3], vignette: '#200a04',
+    paving: { bg: '#b83a0a', tone: 58, spread: 20, warm: -2, seams: true, seamColor: '#b8400a' },
+    ground: { a: '#3a1a12', b: '#1a0a08', hi: '#ff7a1a', glint: 1, edge: '#ff8a2a', edgeStrength: 0.8, speed: 0.6, glow: 1 },
+    stone: ['#3a302c', '#5a4a42'], pillarCap: '#ff7a1a', fort: ['#2a2220', '#4a3a34', '#c4401a'],
+    scatter: 'spire', particles: { color: '#aaaaaa', count: 220, size: 0.15, fall: 0.8, drift: 1, additive: false, opacity: 0.6 }, clouds: 0,
+  },
+  shadow: {
+    sky: '#1a0f2e', fog: [35, 100], exposure: 1.15, hemi: ['#c8b0ff', '#1a0a2a', 1.05], sun: ['#d0a0ff', 2.2], vignette: '#08001a',
+    paving: { bg: '#6a2aff', tone: 48, spread: 18, warm: -10, seams: true, seamColor: '#5a1ac8' },
+    ground: { a: '#1a1030', b: '#0a0618', hi: '#a86bff', glint: 1, edge: '#b07aff', edgeStrength: 0.7, speed: 0.5, glow: 1 },
+    stone: ['#2a2238', '#443a5a'], pillarCap: '#b06bff', fort: ['#1a1428', '#322844', '#7a2aff'],
+    scatter: 'spire', particles: { color: '#b88aff', count: 200, size: 0.14, fall: -1, drift: 1.2, additive: true, opacity: 1 }, clouds: 0, moon: true, moonColor: '#b06bff',
+  },
 };
-export const STAGE_THEME = ['snowfield', 'canyon', 'snow', 'lava', 'swamp', 'storm', 'bloodmoon'];
+export const STAGE_THEME = ['snowfield', 'canyon', 'snow', 'lava', 'swamp', 'storm', 'bloodmoon', 'dunes', 'glacier', 'jungle', 'volcano', 'shadow'];
 
 function random(seed) { return () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }; }
 
@@ -189,6 +224,11 @@ function scenery(kind, theme) {
     b.add(cyl, '#6b4a32', 0, 0.5, 0, 0.14, 1, 0.14);
     for (const [y, s] of [[1.3, 1], [2.1, 0.78], [2.8, 0.55]]) { b.add(cone, '#2f6a4a', 0, y, 0, 0.9 * s, 1.3 * s, 0.9 * s); b.add(cone, '#f6fbff', 0, y + 0.35 * s, 0, 0.6 * s, 0.6 * s, 0.6 * s); }
   }
+  if (kind === 'palm') {
+    b.add(cyl, '#7a5a3a', 0, 1.3, 0, 0.14, 2.6, 0.14);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; b.add(cone, i % 2 ? '#2f9a4a' : '#3fb85a', Math.cos(a) * 0.55, 2.55, Math.sin(a) * 0.55, Math.sin(a) * 1.2, 0, -Math.cos(a) * 1.2, 0.3, 1.3, 0.1); }
+    b.add(rock, '#4a7a3a', 0, 0.1, 0, 0.8, 0.3, 0.8);
+  }
   if (kind === 'deadtree') {
     b.add(cyl, '#4a3a2a', 0, 1.2, 0, 0.18, 2.4, 0.18);
     for (const [y, a, l] of [[1.6, 0.8, 1.1], [2.1, -0.9, 0.9], [2.4, 2.4, 0.7]]) b.add(cyl, '#3e3024', Math.cos(a) * l * 0.45, y + 0.25, Math.sin(a) * l * 0.45, 0.08, l, 0.08, Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9);
@@ -241,8 +281,8 @@ export class ThemedEnvironment {
     }
     const tall = theme.scatter === 'mesa' || theme.scatter === 'spire';
     for (let i = 0; i < (theme.scatter === 'pine' ? 130 : 70); i++) {
-      const side = r() < 0.5 ? -1 : 1, z = 30 - r() * (length + 100), s = tall ? 1.5 + r() * 3 : theme.scatter === 'pine' || theme.scatter === 'deadtree' ? 1 + r() * 1.3 : 0.5 + r() * 1.6;
-      place('scenery', side * (DECK_HALF_WIDTH + (tall ? 6 : theme.flat ? 1.5 : 3) + r() * (tall ? 30 : 18)), theme.flat ? 0 : theme.scatter === 'rock' ? -1.5 : theme.scatter === 'deadtree' ? -1.3 : -1.6, z, s, s * (tall ? 0.8 + r() * 0.8 : 1), s, r() * 6);
+      const side = r() < 0.5 ? -1 : 1, z = 30 - r() * (length + 100), s = tall ? 1.5 + r() * 3 : ['pine', 'deadtree', 'palm'].includes(theme.scatter) ? 1 + r() * 1.3 : 0.5 + r() * 1.6;
+      place('scenery', side * (DECK_HALF_WIDTH + (tall ? 6 : theme.flat ? 1.5 : 3) + r() * (tall ? 30 : 18)), theme.flat ? 0 : theme.scatter === 'rock' ? -1.5 : theme.scatter === 'deadtree' || theme.scatter === 'palm' ? -1.3 : -1.6, z, s, s * (tall ? 0.8 + r() * 0.8 : 1), s, r() * 6);
     }
     for (const [key, matrices] of Object.entries(list)) {
       if (!matrices.length) continue;
@@ -260,9 +300,9 @@ export class ThemedEnvironment {
     const fort = add(this.fortress(theme)); fort.position.z = -length - 6;
     if (theme.moon) {
       // A huge blood moon hanging behind the enemy fortress.
-      const moonMat = new THREE.MeshBasicMaterial({ color: '#ff4a3a', fog: false, toneMapped: false }); this.disposables.push(moonMat);
+      const moonMat = new THREE.MeshBasicMaterial({ color: theme.moonColor || '#ff4a3a', fog: false, toneMapped: false }); this.disposables.push(moonMat);
       const moon = add(new THREE.Mesh(new THREE.CircleGeometry(14, 40), moonMat)); moon.position.set(8, 26, -length - 60);
-      const haloMat = new THREE.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0.25, fog: false, depthWrite: false }); this.disposables.push(haloMat);
+      const haloMat = new THREE.MeshBasicMaterial({ color: theme.moonColor || '#ff2a2a', transparent: true, opacity: 0.25, fog: false, depthWrite: false }); this.disposables.push(haloMat);
       const halo = add(new THREE.Mesh(new THREE.CircleGeometry(22, 40), haloMat)); halo.position.set(8, 26, -length - 61);
     }
     // Drifting cloud shadows over the battlefield.

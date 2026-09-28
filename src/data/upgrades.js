@@ -1,11 +1,12 @@
 // Permanent upgrades bought with coins between stages.
 export const UPGRADES = [
-  { id: 'soldiers', name: 'جنود البداية', detail: level => `+${level * 3} جنود`, base: 60, growth: 1.55, max: 12 },
-  { id: 'damage', name: 'قوة السهام', detail: level => `+${level * 12}%`, base: 80, growth: 1.6, max: 12 },
-  { id: 'fireRate', name: 'سرعة الرمي', detail: level => `+${level * 10}%`, base: 80, growth: 1.6, max: 12 },
-  { id: 'fort', name: 'صلابة القلعة', detail: level => `+${level * 2} قلوب`, base: 50, growth: 1.5, max: 10 },
+  { id: 'soldiers', name: 'جنود البداية', detail: level => `+${level * 3} جنود`, base: 60, growth: 1.55, max: 20 },
+  { id: 'damage', name: 'قوة السهام', detail: level => `+${level * 12}%`, base: 80, growth: 1.6, max: 20 },
+  { id: 'fireRate', name: 'سرعة الرمي', detail: level => `+${level * 10}%`, base: 80, growth: 1.6, max: 20 },
+  { id: 'fort', name: 'صلابة القلعة', detail: level => `+${level * 2} قلوب`, base: 50, growth: 1.5, max: 15 },
 ];
-export const upgradeCost = (upgrade, level) => Math.round(upgrade.base * upgrade.growth ** level / 5) * 5;
+// Exponential up to level 10, then a gentler linear climb so late stages stay reachable.
+export const upgradeCost = (upgrade, level) => Math.round(upgrade.base * upgrade.growth ** Math.min(level, 10) * (1 + Math.max(0, level - 10) * 0.35) / 5) * 5;
 
 // Converts upgrade levels into the modifiers the simulation applies at the start of a stage.
 export function perksFor(levels = {}) {

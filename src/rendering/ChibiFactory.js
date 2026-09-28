@@ -328,6 +328,121 @@ function humanClips() {
   return { idle: { poses: [{ arms: { rx: 0 } }], duration: 1, loop: true }, run: { poses: run, duration: 0.42, loop: true }, shoot: { poses: shoot, duration: 0.3 }, hit: { poses: hit, duration: 0.2 }, death: { poses: death, duration: 0.6 } };
 }
 
+// Shared four-limb giant skeleton (arms double as wings or front legs).
+const giantBones = (shoulderY = 0.95, shoulderX = 0.4, hipX = 0.2) => ({
+  body: { pivot: V(0, 0.5, 0) }, head: { pivot: V(0, 1.0, -0.2), parent: 'body' },
+  armL: { pivot: V(-shoulderX, shoulderY, 0), parent: 'body' }, armR: { pivot: V(shoulderX, shoulderY, 0), parent: 'body' },
+  legL: { pivot: V(-hipX, 0.45, 0) }, legR: { pivot: V(hipX, 0.45, 0) },
+});
+
+// Dragon: hovers, flaps its wings and breathes fire down a lane.
+function dragon(s) {
+  const rig = new Rig(), scale = '#b8263a', dark = '#6e1424', belly = '#f2b35a', horn = '#f4e9d2';
+  rig.add(s.sphere, scale, 'body', T(0, 0.75, 0.05, 0, 0, 0, 0.42, 0.36, 0.55));
+  rig.add(s.sphere, belly, 'body', T(0, 0.66, -0.18, 0, 0, 0, 0.3, 0.26, 0.36));
+  for (let i = 0; i < 5; i++) rig.add(s.cone, horn, 'body', T(0, 1.08 - i * 0.03, 0.2 + i * 0.15, -0.5, 0, 0, 0.05, 0.14, 0.05));
+  for (let i = 0; i < 4; i++) rig.add(s.sphere, i % 2 ? dark : scale, 'body', T(0, 0.62 - i * 0.05, 0.55 + i * 0.22, 0, 0, 0, 0.2 - i * 0.04, 0.16 - i * 0.03, 0.2));
+  rig.add(s.cone, dark, 'body', T(0, 0.45, 1.45, Math.PI / 2 + 0.3, 0, 0, 0.1, 0.3, 0.1));
+  // Head with snout, eyes and horns.
+  rig.add(s.sphere, scale, 'head', T(0, 1.12, -0.42, 0, 0, 0, 0.26, 0.24, 0.28));
+  rig.add(s.sphere, scale, 'head', T(0, 1.05, -0.68, 0, 0, 0, 0.17, 0.13, 0.2));
+  rig.add(s.sphere, belly, 'head', T(0, 0.98, -0.66, 0, 0, 0, 0.14, 0.07, 0.18));
+  for (const side of [-1, 1]) {
+    rig.add(s.cone, horn, 'head', T(side * 0.15, 1.34, -0.34, -0.7, 0, side * -0.4, 0.05, 0.26, 0.05));
+    rig.add(s.lowSphere, '#ffd23a', 'head', T(side * 0.12, 1.18, -0.6, 0, 0, 0, 0.05, 0.035, 0.03), { glow: true });
+    rig.add(s.lowSphere, '#2a0a10', 'head', T(side * 0.05, 1.06, -0.87, 0, 0, 0, 0.02, 0.02, 0.02));
+  }
+  // Wings on the arm bones (they flap with the walk/attack clips).
+  for (const side of [-1, 1]) {
+    const wing = side < 0 ? 'armL' : 'armR';
+    rig.add(s.cyl, dark, wing, T(side * 0.75, 1.1, 0.05, 0, 0, side * 1.25, 0.04, 0.8, 0.04));
+    for (let i = 0; i < 3; i++) rig.add(s.cone, i === 1 ? scale : '#d9384d', wing, T(side * (0.5 + i * 0.25), 0.92 - i * 0.02, 0.25 + i * 0.05, 0.1, 0, side * 0.2, 0.2, 0.62, 0.05));
+  }
+  for (const side of [-1, 1]) {
+    const leg = side < 0 ? 'legL' : 'legR';
+    limb(rig, s, dark, leg, V(side * 0.25, 0.5, 0.1), V(side * 0.28, 0.12, 0.05), 0.1);
+    for (const dx of [-0.06, 0.06]) rig.add(s.cone, horn, leg, T(side * 0.28 + dx, 0.04, -0.12, -Math.PI / 2, 0, 0, 0.03, 0.1, 0.03));
+  }
+  return { rig, bones: giantBones(0.95, 0.35, 0.25) };
+}
+
+// Yeti: shaggy white giant that hurls ice boulders.
+function yeti(s) {
+  const rig = new Rig(), fur = '#f1f5fb', shade = '#c9d6ea', skin = '#6a8ecb', horn = '#dfe7f0';
+  rig.add(s.sphere, fur, 'body', T(0, 0.72, 0, 0, 0, 0, 0.46, 0.44, 0.4));
+  rig.add(s.sphere, shade, 'body', T(0, 0.62, -0.25, 0, 0, 0, 0.3, 0.3, 0.18));
+  for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; rig.add(s.cone, fur, 'body', T(Math.cos(a) * 0.42, 0.35, Math.sin(a) * 0.36, Math.PI, 0, 0, 0.1, 0.18, 0.1)); }
+  rig.add(s.sphere, fur, 'head', T(0, 1.18, -0.08, 0, 0, 0, 0.26, 0.25, 0.25));
+  rig.add(s.sphere, skin, 'head', T(0, 1.14, -0.26, 0, 0, 0, 0.17, 0.15, 0.08));
+  for (const side of [-1, 1]) {
+    rig.add(s.lowSphere, '#ffffff', 'head', T(side * 0.07, 1.18, -0.33, 0, 0, 0, 0.04, 0.04, 0.02), { ao: false });
+    rig.add(s.tinySphere, '#0a1430', 'head', T(side * 0.07, 1.18, -0.35, 0, 0, 0, 0.02, 0.02, 0.01), { ao: false });
+    rig.add(s.cone, horn, 'head', T(side * 0.22, 1.36, -0.02, 0, 0, side * -0.8, 0.06, 0.22, 0.06));
+    rig.add(s.box, '#ffffff', 'head', T(side * 0.05, 1.04, -0.33, 0, 0, 0, 0.04, 0.05, 0.02));
+  }
+  for (const side of [-1, 1]) {
+    const arm = side < 0 ? 'armL' : 'armR', leg = side < 0 ? 'legL' : 'legR';
+    limb(rig, s, fur, arm, V(side * 0.42, 0.95, 0), V(side * 0.55, 0.45, -0.12), 0.14);
+    rig.add(s.sphere, skin, arm, T(side * 0.56, 0.38, -0.14, 0, 0, 0, 0.13, 0.12, 0.14));
+    limb(rig, s, fur, leg, V(side * 0.2, 0.4, 0), V(side * 0.22, 0.1, 0), 0.14);
+    rig.add(s.sphere, skin, leg, T(side * 0.22, 0.06, -0.06, 0, 0, 0, 0.14, 0.07, 0.2));
+  }
+  // Ice boulder held overhead in the right hand.
+  rig.add(s.rock1, '#a8dcff', 'armR', T(0.58, 0.3, -0.2, 0.3, 0.4, 0, 0.2, 0.2, 0.2), { flat: true, glow: true });
+  return { rig, bones: giantBones(0.95, 0.42, 0.2) };
+}
+
+// Warlock: robed summoner with a skull staff.
+function warlock(s) {
+  const rig = new Rig(), robe = '#3b1d5a', dark = '#1e0f30', trim = '#c9a2ff', bone = '#efe6d0';
+  rig.add(s.lathe([[0.001, 0.02], [0.4, 0.03], [0.34, 0.35], [0.26, 0.7], [0.2, 0.95], [0.001, 1.0]], 16), robe, 'body', T());
+  rig.add(s.torus(0.38, 0.03, 4, 18), trim, 'body', T(0, 0.08, 0, Math.PI / 2));
+  rig.add(s.box, trim, 'body', T(0, 0.5, -0.3, -0.2, 0, 0, 0.08, 0.7, 0.03));
+  for (const side of [-1, 1]) rig.add(s.cone, dark, 'body', T(side * 0.3, 1.0, 0, 0, 0, side * -1.2, 0.1, 0.3, 0.1));
+  rig.add(s.hood(90, Math.PI * 0.7), robe, 'head', T(0, 1.12, 0, 0, 0, 0, 0.24, 0.26, 0.24));
+  rig.add(s.cone, robe, 'head', T(0, 1.42, 0.08, 0.4, 0, 0, 0.14, 0.3, 0.14));
+  rig.add(s.sphere, '#120818', 'head', T(0, 1.1, -0.08, 0, 0, 0, 0.18, 0.18, 0.16));
+  for (const side of [-1, 1]) rig.add(s.lowSphere, '#6aff8a', 'head', T(side * 0.07, 1.12, -0.23, 0, 0, 0, 0.035, 0.025, 0.02), { glow: true });
+  for (const side of [-1, 1]) {
+    const arm = side < 0 ? 'armL' : 'armR';
+    limb(rig, s, robe, arm, V(side * 0.22, 0.9, 0), V(side * 0.36, 0.6, -0.2), 0.08);
+    rig.add(s.lowSphere, '#8c7aa6', arm, T(side * 0.37, 0.57, -0.22, 0, 0, 0, 0.06, 0.06, 0.06));
+  }
+  rig.add(s.cyl, '#3a2a1e', 'armR', T(0.38, 0.8, -0.22, 0, 0, 0, 0.025, 1.3, 0.025));
+  rig.add(s.sphere, bone, 'armR', T(0.38, 1.5, -0.22, 0, 0, 0, 0.11, 0.1, 0.1));
+  rig.add(s.sphere, '#6aff8a', 'armR', T(0.38, 1.5, -0.22, 0, 0, 0, 0.15, 0.15, 0.15), { glow: true });
+  rig.add(s.box, '#1a1010', 'armR', T(0.38, 1.49, -0.32, 0, 0, 0, 0.1, 0.03, 0.02));
+  return { rig, bones: giantBones(0.9, 0.22, 0.15) };
+}
+
+// Armoured war elephant that charges through the line.
+function elephant(s) {
+  const rig = new Rig(), grey = '#8c8f9e', dark = '#6c6f7e', red = '#b52331', gold = '#f0c050', tusk = '#fbf4e0';
+  rig.add(s.sphere, grey, 'body', T(0, 0.8, 0.1, 0, 0, 0, 0.5, 0.42, 0.62));
+  rig.add(s.box, red, 'body', T(0, 1.02, 0.1, 0, 0, 0, 0.72, 0.4, 0.7));
+  rig.add(s.box, gold, 'body', T(0, 0.83, 0.1, 0, 0, 0, 0.74, 0.06, 0.72));
+  rig.add(s.box, '#6b3f22', 'body', T(0, 1.3, 0.2, 0, 0, 0, 0.5, 0.2, 0.5));
+  for (const x of [-0.2, 0.2]) rig.add(s.cone, red, 'body', T(x, 1.48, 0.2, 0, 0, 0, 0.07, 0.25, 0.07));
+  rig.add(s.sphere, grey, 'head', T(0, 1.05, -0.5, 0, 0, 0, 0.32, 0.3, 0.3));
+  rig.add(s.box, gold, 'head', T(0, 1.18, -0.72, -0.3, 0, 0, 0.28, 0.18, 0.04));
+  for (const side of [-1, 1]) {
+    rig.add(s.sphere, dark, 'head', T(side * 0.34, 1.05, -0.42, 0, side * 0.3, 0, 0.05, 0.28, 0.22));
+    rig.add(s.lowSphere, '#1a1010', 'head', T(side * 0.14, 1.12, -0.76, 0, 0, 0, 0.035, 0.035, 0.02));
+    rig.add(s.cone, tusk, 'head', T(side * 0.15, 0.82, -0.86, -1.1, 0, 0, 0.04, 0.4, 0.04));
+  }
+  for (let i = 0; i < 4; i++) rig.add(s.cyl, grey, 'head', T(0, 0.85 - i * 0.14, -0.8 - i * 0.03, 0.2, 0, 0, 0.09 - i * 0.012, 0.16, 0.09 - i * 0.012));
+  for (const side of [-1, 1]) {
+    const front = side < 0 ? 'armL' : 'armR', back = side < 0 ? 'legL' : 'legR';
+    rig.add(s.cyl, grey, front, T(side * 0.3, 0.3, -0.3, 0, 0, 0, 0.14, 0.6, 0.14));
+    rig.add(s.cyl, tusk, front, T(side * 0.3, 0.03, -0.3, 0, 0, 0, 0.15, 0.06, 0.15));
+    rig.add(s.cyl, grey, back, T(side * 0.3, 0.3, 0.45, 0, 0, 0, 0.14, 0.6, 0.14));
+    rig.add(s.cyl, tusk, back, T(side * 0.3, 0.03, 0.45, 0, 0, 0, 0.15, 0.06, 0.15));
+  }
+  const bones = giantBones(0.6, 0.3, 0.3);
+  bones.armL.pivot = V(-0.3, 0.6, -0.3); bones.armR.pivot = V(0.3, 0.6, -0.3); bones.legL.pivot = V(-0.3, 0.6, 0.45); bones.legR.pivot = V(0.3, 0.6, 0.45);
+  return { rig, bones };
+}
+
 function giantClips(heavy) {
   const walk = [], attack = [], death = [];
   for (let i = 0; i < 6; i++) {
@@ -369,8 +484,9 @@ export class ChibiFactory {
     const key = `${type}:${weapon}`;
     if (this.cache.has(key)) return this.cache.get(key);
     const shapes = ['recruit', 'elite', 'enemyGrunt', 'enemyBrute'].includes(type) ? this.crowdShapes : this.shapes;
-    const { rig, bones } = type === 'desertBeast' ? golem(shapes) : type === 'giantBoss' ? knight(shapes) : humanoid(type, shapes, weapon);
-    const clips = ['desertBeast', 'giantBoss'].includes(type) ? giantClips(type === 'giantBoss') : humanClips();
+    const giants = { desertBeast: golem, giantBoss: knight, dragon, yeti, warlock, warElephant: elephant };
+    const { rig, bones } = giants[type] ? giants[type](shapes) : humanoid(type, shapes, weapon);
+    const clips = giants[type] ? giantClips(type === 'giantBoss' || type === 'yeti') : humanClips();
     const { body, glow } = this.materials();
     const frames = [], outClips = {};
     for (const [state, clip] of Object.entries(clips)) {

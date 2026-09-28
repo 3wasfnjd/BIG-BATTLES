@@ -163,5 +163,16 @@ export class GameAudio {
     if (kind === 'freeze') this.burst(this.sfx, t, 0.5, 0.15, 'highpass', 6000);
   }
   combo(count) { if (!this.ready('combo', 0.2)) return; const t = this.ctx.currentTime, base = 72 + Math.min(12, Math.floor(count / 25) * 2); [0, 4, 7, 12].forEach((d, i) => this.tone(this.sfx, 'square', midi(base + d), t + i * 0.05, 0.18, 0.08, 4000)); }
+  bossWindup(type) {
+    if (!this.ready('bossWindup', 0.4)) return;
+    const t = this.ctx.currentTime;
+    if (type === 'dragon') this.sweep(this.sfx, 'sawtooth', 70, 160, t, 0.8, 0.18);
+    else if (type === 'warElephant') [0, 0.18].forEach((d, i) => this.tone(this.sfx, 'sawtooth', i ? 392 : 330, t + d, 0.5, 0.18, 1600, 0.05));
+    else if (type === 'warlock') this.sweep(this.sfx, 'triangle', 300, 900, t, 0.7, 0.14);
+    else this.sweep(this.sfx, 'square', 90, 60, t, 0.5, 0.12);
+  }
+  breath() { if (!this.ready('breath', 0.5)) return; const t = this.ctx.currentTime; this.burst(this.sfx, t, 1.1, 0.6, 'bandpass', 700, 0.6, 2400); this.burst(this.sfx, t, 1.2, 0.35, 'lowpass', 400); }
+  summon() { if (!this.ready('summon', 0.5)) return; const t = this.ctx.currentTime; [55, 58, 62, 65].forEach((n, i) => this.tone(this.sfx, 'sawtooth', midi(n), t + i * 0.08, 0.5, 0.1, 1200)); this.burst(this.sfx, t, 0.6, 0.2, 'bandpass', 500, 3); }
+  charge() { if (!this.ready('charge', 0.5)) return; const t = this.ctx.currentTime; for (let i = 0; i < 6; i++) this.drum(this.sfx, t + i * 0.11, 0.9); }
   click() { if (this.ready('click', 0.05)) this.tone(this.sfx, 'triangle', 880, this.ctx.currentTime, 0.06, 0.12); }
 }

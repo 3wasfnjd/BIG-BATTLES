@@ -21,7 +21,14 @@ import { GameAudio } from './Audio.js';
 import { COIN_VALUE, ENERGY_MAX } from './DefenseSimulation.js';
 
 const ICONS = { soldiers: '🛡️', damage: '🏹', fireRate: '⚡', fort: '🏰' };
-const AR_DIGITS = ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+const AR_DIGITS = ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '١٠', '١١', '١٢', '١٣', '١٤', '١٥'];
+// Label height above each giant (world units) and boss announcements.
+const GIANT_TOP = { giantBoss: 6.2, desertBeast: 3.8, dragon: 6.4, yeti: 5.6, warlock: 5.2, warElephant: 5.2 };
+const BOSS_BANNERS = {
+  boss: ['⚠ الزعيم قادم', 'دمّره قبل أن يسحق جيشك'], beast: ['وحش صخري!', 'ركّز السهام عليه'],
+  dragon: ['🐉 التنين!', 'ابتعد عن مسار نيرانه'], yeti: ['❄ عملاق الجليد!', 'يرمي صخورًا جليدية على جيشك'],
+  warlock: ['💀 الساحر المظلم!', 'يستدعي محاربين جددًا باستمرار'], elephant: ['🐘 فيل الحرب!', 'يندفع ويدهس صفوفك'], warElephant: ['🐘 فيل الحرب!', 'يندفع ويدهس صفوفك'],
+};
 
 // Mob-Control style mode: the army holds the line and only slides left/right while
 // hordes, gates and barrels come to it. Coins buy permanent upgrades between stages.
@@ -78,6 +85,11 @@ export class DefenseGame {
       onRainImpact: () => { this.cameraRig.kick(0.6); this.audio.rainImpact(); },
       onLightning: points => { this.effects.lightning(points); this.audio.thunder(true); },
       onCombo: (count, bonus) => this.showCombo(count, bonus),
+      onBossWindup: unit => this.audio.bossWindup(unit.type),
+      onBreath: (x, z) => { for (let i = 0; i <= 10; i++) this.effects.explosion(x + (Math.random() - 0.5) * 2.4, z - 1 - i * (z + 4) / 10, 'cannon'); this.cameraRig.kick(0.7); this.audio.breath(); },
+      onBoulder: (unit, x, z) => { this.effects.explosion(x, z, 'ice'); this.effects.explosion(x + 0.8, z + 0.5, 'ice'); this.effects.clash(x, z, true); this.audio.blast('cannon'); },
+      onSummon: (x, z) => { this.effects.explosion(x - 1.2, z - 1, 'summon'); this.effects.explosion(x + 1.2, z - 1, 'summon'); this.audio.summon(); },
+      onCharge: () => { this.cameraRig.kick(0.9); this.audio.charge(); },
       onSplash: (x, z, kind) => { this.effects.explosion(x, z, kind); this.audio.blast(kind); },
       onWeapon: kind => { this.visuals.setWeapon(kind); this.banner(`${WEAPON_KINDS[kind].icon} ${WEAPON_KINDS[kind].name}`, 'سلاح جديد لكل الجيش!', 'weapon'); this.audio.power('weapon'); },
       onClash: (enemy, trade) => { this.effects.clash(enemy.x, Math.max(0.2, enemy.z), trade > 1); this.audio.clash(trade > 1); },
@@ -242,7 +254,7 @@ export class DefenseGame {
     for (const giant of this.sim.enemies) if (giant.aiState && giant.alive) {
       const seen = this.giantDamage.get(giant) ?? { health: giant.health, timer: 0 };
       seen.timer -= dt;
-      if (seen.timer <= 0) { const lost = Math.round(seen.health - giant.health); if (lost > 0) this.floatText(`-${lost}`, giant.x + (Math.random() - 0.5) * 2, giant.type === 'giantBoss' ? 4.6 : 2.8, giant.z, 'dmg'); seen.health = giant.health; seen.timer = 0.35; }
+      if (seen.timer <= 0) { const lost = Math.round(seen.health - giant.health); if (lost > 0) this.floatText(`-${lost}`, giant.x + (Math.random() - 0.5) * 2, (GIANT_TOP[giant.type] || 4.5) - 1.6, giant.z, 'dmg'); seen.health = giant.health; seen.timer = 0.35; }
       this.giantDamage.set(giant, seen);
     }
     for (const f of this.floats) {
@@ -259,8 +271,8 @@ export class DefenseGame {
     el.className = kind; void el.offsetWidth; el.classList.add('show');
   }
   announce(event) {
-    if (event.type === 'boss') { this.banner('⚠ الزعيم قادم', 'دمّره قبل أن يسحق جيشك', 'boss'); this.cameraRig.kick(0.8); this.audio.roar(); }
-    else if (event.type === 'beast') { this.banner('وحش صخري!', 'ركّز السهام عليه', 'boss'); this.cameraRig.kick(0.5); this.audio.roar(); }
+    const banner = BOSS_BANNERS[event.type];
+    if (banner) { this.banner(banner[0], banner[1], 'boss'); this.cameraRig.kick(event.type === 'beast' ? 0.5 : 0.8); this.audio.roar(); }
     else if (event.type === 'horde' && event.archers && !this.archerWarned) { this.archerWarned = true; this.banner('رماة الأعداء!', 'يقفون ويرمون جيشك بالسهام', 'boss'); }
     else if (event.type === 'horde' && event.count >= 100) this.banner('موجة ضخمة!', `${event.count} محارب`, 'wave');
   }
@@ -297,7 +309,7 @@ export class DefenseGame {
     this.labels.place('army', army.center.x, 2.2, 0.5, width, height, String(army.count));
     const giant = this.sim.enemies.find(unit => unit.aiState && unit.alive);
     if (giant) {
-      this.labels.place('giant', giant.x, giant.type === 'giantBoss' ? 6.2 : 3.8, -giant.z, width, height, String(Math.ceil(giant.health)));
+      this.labels.place('giant', giant.x, GIANT_TOP[giant.type] || 4.5, -giant.z, width, height, String(Math.ceil(giant.health)));
       this.ui['giant-tag'].querySelector('i').style.transform = `scaleX(${(giant.health / giant.maxHealth).toFixed(3)})`;
     } else this.ui['giant-tag'].hidden = true;
     let i = 0;

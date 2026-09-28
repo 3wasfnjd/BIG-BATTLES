@@ -50,6 +50,8 @@ const KIND_LOOK = {
   rifle: { width: 0.45, length: 1.7, body: 1, color: new THREE.Color('#fff4b8'), halo: new THREE.Color('#ffe08a').multiplyScalar(0.5) },
   magic: { width: 1.6, length: 0.85, body: 1.4, color: new THREE.Color('#56d0ff'), halo: new THREE.Color('#3aa8ff').multiplyScalar(0.8) },
   cannon: { width: 1.7, length: 1.1, body: 1.3, color: new THREE.Color('#ff7a1a'), halo: new THREE.Color('#ff5a10').multiplyScalar(0.7) },
+  summon: { color: new THREE.Color('#b06bff') },
+  ice: { color: new THREE.Color('#bfeaff') },
 };
 export class ArcadeEffects {
   constructor(scene) {
@@ -71,13 +73,16 @@ export class ArcadeEffects {
     this.sparks = instanced(flat.clone().scale(0.5, 1, 1.6), additive(glow), CONFIG.impactCapacity * SPARKS_PER_HIT, scene);
     this.pool = new ObjectPool(CONFIG.impactCapacity, () => ({ sparks: Array.from({ length: SPARKS_PER_HIT }, () => ({ vx: 0, vz: 0, vy: 0 })) }));
     // Boss/beast telegraph: glowing ring plus a soft filled disc.
-    this.ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ff3b2f', transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false }));
-    this.disc = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ff3b2f', transparent: true, opacity: 0.18, depthWrite: false }));
-    this.fill = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ff6a3a', transparent: true, opacity: 0.25, depthWrite: false }));
-    for (const mesh of [this.ring, this.disc, this.fill]) { mesh.visible = false; mesh.renderOrder = 2; scene.add(mesh); }
+    this.colors.danger = new THREE.Color('#ff3b2f'); this.colors.summon = new THREE.Color('#9b5cff');
+    const ringGeo = new THREE.RingGeometry(0.9, 1, 48).rotateX(-Math.PI / 2), discGeo = new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), plane = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+    const mat = opacity => new THREE.MeshBasicMaterial({ color: '#ff3b2f', transparent: true, opacity, depthWrite: false, toneMapped: false });
+    this.ringMeshes = Array.from({ length: 4 }, () => [new THREE.Mesh(ringGeo, mat(0.9)), new THREE.Mesh(discGeo, mat(0.18)), new THREE.Mesh(discGeo, mat(0.28))]);
+    this.stripMeshes = Array.from({ length: 4 }, () => [new THREE.Mesh(plane, mat(0.3)), new THREE.Mesh(plane, mat(0.35))]);
+    for (const mesh of [...this.ringMeshes.flat(), ...this.stripMeshes.flat()]) { mesh.visible = false; mesh.renderOrder = 2; scene.add(mesh); }
     this.shake = 0;
     this.orbs = instanced(new THREE.SphereGeometry(0.2, 12, 8), additive(glow), CONFIG.projectileCapacity, scene);
-    this.shells = instanced(new THREE.SphereGeometry(0.22, 12, 8), new THREE.MeshLambertMaterial({ color: '#2a2d36' }), CONFIG.projectileCapacity, scene);
+    // Cannon shells read as small glowing fireballs rather than dark dots over the crowd.
+    this.shells = instanced(new THREE.SphereGeometry(0.15, 10, 6), new THREE.MeshBasicMaterial({ color: '#ffb04a', toneMapped: false }), CONFIG.projectileCapacity, scene);
     // Arrow rain: bolts falling from the sky. Lightning: vertical beams.
     this.skyBolts = instanced(this.bolts.geometry, this.bolts.material, 90, scene);
     this.skyTrails = instanced(this.trails.geometry, this.trails.material, 90, scene);
@@ -92,7 +97,7 @@ export class ArcadeEffects {
   lightning(points) { this.strikes = points.map(p => ({ ...p, life: 0.4 })); for (const p of points) this.clash(p.x, p.z, false); this.shake = Math.max(this.shake, 0.5); }
   hit(unit, died) {
     const effect = this.pool.acquire(); if (!effect) return;
-    const big = unit.type === 'giantBoss' || unit.type === 'desertBeast' || (died && unit.type === 'barrel');
+    const big = !!unit.aiState || (died && unit.type === 'barrel');
     Object.assign(effect, { x: unit.x + (Math.random() - 0.5) * (big ? 1.2 : 0.2), z: unit.z, y: big ? 1 + Math.random() * 1.6 : 0.55, life: died ? 0.42 : 0.2, maxLife: died ? 0.42 : 0.2, team: unit.team, died, big, prop: !!unit.isProp, clash: false, blast: null });
     for (const spark of effect.sparks) {
       const a = Math.random() * Math.PI * 2, speed = (died ? 4.5 : 3) * (0.5 + Math.random());
@@ -113,7 +118,7 @@ export class ArcadeEffects {
   // Splash impact: big coloured burst and dust ring (magic = blue, cannon = fire).
   explosion(x, z, kind) {
     const effect = this.pool.acquire(); if (!effect) return;
-    Object.assign(effect, { x, z, y: 0.6, life: 0.45, maxLife: 0.45, team: kind === 'magic' ? 'magic' : 'cannon', died: true, big: true, prop: false, clash: false, blast: kind });
+    Object.assign(effect, { x, z, y: 0.6, life: 0.45, maxLife: 0.45, team: kind, died: true, big: true, prop: false, clash: false, blast: kind });
     for (const spark of effect.sparks) { const a = Math.random() * Math.PI * 2, speed = 5 + Math.random() * 4; spark.vx = Math.cos(a) * speed; spark.vz = Math.sin(a) * speed; spark.vy = 3 + Math.random() * 3; }
     if (kind === 'cannon') this.shake = Math.max(this.shake, 0.18);
   }
@@ -153,13 +158,13 @@ export class ArcadeEffects {
     let flashes = 0, sparks = 0, puffs = 0;
     for (const e of this.pool.active) {
       const k = e.life / e.maxLife, age = e.maxLife - e.life;
-      const color = e.blast ? (e.blast === 'magic' ? KIND_LOOK.magic.color : KIND_LOOK.cannon.color) : e.clash ? this.colors.clash : e.died ? (e.team === 'enemy' ? this.colors.death : this.colors.playerDeath) : e.team === 'enemy' ? this.colors.playerHit : this.colors.enemyHit;
+      const color = e.blast ? (KIND_LOOK[e.blast]?.color || KIND_LOOK.cannon.color) : e.clash ? this.colors.clash : e.died ? (e.team === 'enemy' ? this.colors.death : this.colors.playerDeath) : e.team === 'enemy' ? this.colors.playerHit : this.colors.enemyHit;
       d.position.set(e.x, e.y, -e.z); d.rotation.set(0, e.x * 7 + age * 6, 0);
       d.scale.setScalar((e.clash ? (e.big ? 3.4 : 2.4) : e.died ? 2.2 : e.big ? 1.6 : 1.1) * (0.4 + (1 - k) * 0.9) * (0.4 + k * 0.6)); d.updateMatrix();
       this.flashes.setMatrixAt(flashes, d.matrix); this.flashes.setColorAt(flashes++, color);
       if (e.died) {
         d.position.set(e.x, 0.05, -e.z); d.rotation.set(0, 0, 0); d.scale.setScalar((e.blast === 'magic' ? 1.5 : e.blast === 'cannon' ? 2.3 : e.big ? 3.2 : 0.9) * (0.3 + (1 - k) * 1.1)); d.updateMatrix();
-        this.puffs.setMatrixAt(puffs, d.matrix); this.puffs.setColorAt(puffs++, this.color.copy(e.blast ? (e.blast === 'magic' ? KIND_LOOK.magic.color : KIND_LOOK.cannon.color) : e.prop ? this.dust.prop : this.dust[e.team] || this.dust.enemy).multiplyScalar(k));
+        this.puffs.setMatrixAt(puffs, d.matrix); this.puffs.setColorAt(puffs++, this.color.copy(e.blast ? (KIND_LOOK[e.blast]?.color || KIND_LOOK.cannon.color) : e.prop ? this.dust.prop : this.dust[e.team] || this.dust.enemy).multiplyScalar(k));
       }
       for (const s of e.sparks) {
         d.position.set(e.x + s.vx * age, Math.max(0.05, e.y + s.vy * age - 9 * age * age), -e.z + s.vz * age);
@@ -186,23 +191,40 @@ export class ArcadeEffects {
       this.beams.setMatrixAt(beams, d.matrix); this.beams.setColorAt(beams++, this.color.setRGB(0.85 + k * 0.15, 0.9, 1));
     }
     flush(this.beams, beams);
-    // Telegraph: ring at full radius, inner fill grows with the wind-up.
-    const attacker = enemies.find(unit => unit.alive && unit.telegraph);
-    for (const mesh of [this.ring, this.disc, this.fill]) mesh.visible = !!attacker;
-    if (attacker) {
-      const radius = attacker.type === 'giantBoss' && attacker.attackCount % 3 === 2 ? 4.7 : attacker.range;
-      const def = attacker.type === 'giantBoss' ? 0.8 : 0.6, progress = Math.min(1, Math.max(0, 1 - attacker.timer / def));
-      for (const mesh of [this.ring, this.disc, this.fill]) mesh.position.set(attacker.x, 0.04, -attacker.z);
-      this.ring.scale.setScalar(radius); this.disc.scale.setScalar(radius); this.fill.scale.setScalar(Math.max(0.01, radius * progress));
-      this.ring.material.opacity = 0.7 + Math.sin(time * 22) * 0.25;
+    // Telegraphs: classic giants use a ring around themselves; defence bosses publish
+    // the exact strike shape (ring or lane strip) and its fill grows with the wind-up.
+    let rings = 0, strips = 0;
+    for (const unit of enemies) {
+      if (!unit.alive) continue;
+      let shape = null;
+      if (unit.tele) shape = unit.tele;
+      else if (unit.telegraph) shape = { shape: 'ring', x: unit.x, z: unit.z, radius: unit.type === 'giantBoss' && unit.attackCount % 3 === 2 ? 4.7 : unit.range };
+      if (!shape) continue;
+      const def = unit.windupTime || (unit.type === 'giantBoss' ? 0.8 : 0.6);
+      const progress = unit.aiState === 'ATTACK' ? Math.min(1, Math.max(0, 1 - unit.timer / (unit.windupMax || def))) : 1;
+      const color = shape.color === 'summon' ? this.colors.summon : this.colors.danger;
+      if (shape.shape === 'strip' && strips < this.stripMeshes.length) {
+        const [edge, fill] = this.stripMeshes[strips++], len = Math.abs(shape.z0 - shape.z1), mid = -(shape.z0 + shape.z1) / 2;
+        edge.visible = fill.visible = true; edge.material.color.copy(color); fill.material.color.copy(color);
+        edge.position.set(shape.x, 0.04, mid); edge.scale.set(shape.width * 2, 1, len);
+        fill.position.set(shape.x, 0.05, -shape.z0 + len * progress / 2); fill.scale.set(shape.width * 2, 1, Math.max(0.01, len * progress));
+        edge.material.opacity = 0.25 + Math.sin(time * 20) * 0.1;
+      } else if (rings < this.ringMeshes.length) {
+        const [ring, disc, fill] = this.ringMeshes[rings++];
+        for (const mesh of [ring, disc, fill]) { mesh.visible = true; mesh.position.set(shape.x, 0.04, -shape.z); mesh.material.color.copy(color); }
+        ring.scale.setScalar(shape.radius); disc.scale.setScalar(shape.radius); fill.scale.setScalar(Math.max(0.01, shape.radius * progress));
+        ring.material.opacity = 0.7 + Math.sin(time * 22) * 0.25;
+      }
     }
+    for (let i = rings; i < this.ringMeshes.length; i++) for (const mesh of this.ringMeshes[i]) mesh.visible = false;
+    for (let i = strips; i < this.stripMeshes.length; i++) for (const mesh of this.stripMeshes[i]) mesh.visible = false;
   }
   takeShake() { const s = this.shake; this.shake = 0; return s; }
   clear() {
     this.pool.clear(true);
     for (const mesh of [this.orbs, this.shells, this.bolts, this.trails, this.halos, this.muzzles, this.flashes, this.sparks, this.puffs, this.skyBolts, this.skyTrails, this.beams]) flush(mesh, 0);
     this.falling.length = 0; this.strikes.length = 0;
-    for (const mesh of [this.ring, this.disc, this.fill]) mesh.visible = false;
+    for (const mesh of [...this.ringMeshes.flat(), ...this.stripMeshes.flat()]) mesh.visible = false;
   }
 }
 
