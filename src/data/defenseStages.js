@@ -226,3 +226,44 @@ export const DEFENSE_STAGES = [
     ],
   },
 ];
+
+// Stages 8-12: late campaign built from one escalating pattern plus hand-placed bosses.
+function lateStage({ id, name, baseHp, clearBonus, coinScale, k, speed, bosses, weapons, ...stats }) {
+  const n = v => Math.round(v * k), s = { speed };
+  const events = [
+    gate(0, add(n(-8)), mul(2)),
+    horde(1, n(40), -3.5, { ...s, brutes: n(4), archers: n(8) }), horde(2, n(40), 3.5, { ...s, brutes: n(4), archers: n(8) }),
+    gate(6, add(15), add(n(-30))),
+    power(8, 3.5, n(500), 'freeze'),
+    horde(9, n(110), 0, { ...s, width: 13, brutes: n(10), archers: n(16) }),
+    gate(13, weapon(weapons[0]), weapon(weapons[1])),
+    chest(16, -3.5, n(700), n(250)),
+    horde(18, n(90), -4, { ...s, brutes: n(12), archers: n(14) }), horde(19, n(90), 4, { ...s, brutes: n(12), archers: n(14) }),
+    power(22, 3.5, n(800), 'lightning'),
+    gate(25, up('fire_rate', 1.35), add(n(-60))),
+    horde(27, n(170), 0, { ...s, width: 13, brutes: n(18), archers: n(24) }),
+    arms(31, -3.5, n(900), weapons[2]),
+    horde(35, n(140), -4, { ...s, brutes: n(18), archers: n(20) }), horde(36, n(140), 4, { ...s, brutes: n(18), archers: n(20) }),
+    gate(40, mul(2), add(n(-90))),
+    power(43, 3.5, n(1000), 'shield'),
+    horde(46, n(220), 0, { ...s, width: 13, brutes: n(24), archers: n(28) }),
+    gate(50, up('elite_upgrade', 0.8), add(n(-100))),
+    power(52, -3.5, n(1100), 'fire'),
+    horde(53, n(160), -4, { ...s, brutes: n(20), archers: n(22) }), horde(54, n(160), 4, { ...s, brutes: n(20), archers: n(22) }),
+    horde(62, n(260), 0, { ...s, width: 13, brutes: n(30), archers: n(32) }),
+    ...bosses.map(([t, type, x, health]) => ({ t, type, x, health })),
+  ].sort((a, b) => a.t - b.t);
+  return { id, name, initialArmy: 10, baseHp, clearBonus, coinScale, ...stats, events };
+}
+DEFENSE_STAGES.push(
+  lateStage({ id: 8, name: 'كثبان الغروب', baseHp: 5, clearBonus: 4000, coinScale: 4, k: 1, speed: 4.2, gruntSpeed: 3.8, gruntHp: 376, bruteHp: 2300, archerDamage: 15, archerRange: 14.5,
+    weapons: ['rifle', 'magic', 'triple'], bosses: [[20, 'dragon', 0, 90000], [44, 'beast', 3, 40000]] }),
+  lateStage({ id: 9, name: 'نهر الجليد', baseHp: 5, clearBonus: 5000, coinScale: 4.6, k: 1.1, speed: 4.3, gruntSpeed: 3.9, gruntHp: 443, bruteHp: 2750, archerDamage: 16, archerRange: 14.5,
+    weapons: ['cannon', 'triple', 'magic'], bosses: [[15, 'yeti', -3, 90000], [38, 'yeti', 3, 110000]] }),
+  lateStage({ id: 10, name: 'غابة الأدغال', baseHp: 5, clearBonus: 6000, coinScale: 5.2, k: 1.2, speed: 4.4, gruntSpeed: 4, gruntHp: 359, bruteHp: 2240, archerDamage: 17, archerRange: 15,
+    weapons: ['magic', 'rifle', 'cannon'], bosses: [[12, 'warlock', 0, 80000], [34, 'warElephant', -3, 120000]] }),
+  lateStage({ id: 11, name: 'فوهة البركان', baseHp: 4, clearBonus: 7500, coinScale: 6, k: 1.3, speed: 4.5, gruntSpeed: 4.1, gruntHp: 404, bruteHp: 2440, archerDamage: 18, archerRange: 15,
+    weapons: ['cannon', 'magic', 'rifle'], bosses: [[10, 'warElephant', 3, 120000], [28, 'dragon', -3, 140000], [48, 'warElephant', 0, 150000]] }),
+  lateStage({ id: 12, name: 'عرش الظلال', baseHp: 4, clearBonus: 10000, coinScale: 7, k: 1.4, speed: 4.6, gruntSpeed: 4.2, gruntHp: 464, bruteHp: 2900, archerDamage: 20, archerRange: 15.5,
+    weapons: ['triple', 'cannon', 'magic'], bosses: [[8, 'warlock', -3, 110000], [22, 'yeti', 3, 150000], [38, 'dragon', 0, 180000], [55, 'boss', 0, 220000]] }),
+);

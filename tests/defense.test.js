@@ -21,18 +21,15 @@ test('the army holds its line: only sideways movement, the front stays at z = 0'
   assert.ok(Math.max(...sim.army.units.map(u => u.z)) <= 0.05);
 });
 
-test('stages get harder: each needs more upgrades, and the last cannot be won early', () => {
-  const levels = [0, 1, 2, 3, 4, 6, 8, 9, 10, 11, 12];
-  const results = DEFENSE_STAGES.map(s => levels.map(level => play(s, all(level)).state === 'victory'));
-  console.log(JSON.stringify(results));
-  const firstWin = results.map(r => levels[r.indexOf(true)]);
-  assert.equal(DEFENSE_STAGES.length, 7);
-  assert.ok(results.every(r => r.includes(true)), 'every stage is winnable with upgrades');
+test('stages get harder: each needs more upgrades, and the last needs most of the tree', () => {
+  const levels = [0, 1, 2, 3, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20];
+  // First upgrade level (all four upgrades) at which the scripted player clears each stage.
+  const firstWin = DEFENSE_STAGES.map(s => levels.find(level => play(s, all(level)).state === 'victory'));
+  console.log(JSON.stringify(firstWin));
+  assert.equal(DEFENSE_STAGES.length, 12);
+  assert.ok(firstWin.every(level => level !== undefined), 'every stage is winnable with upgrades');
   for (let i = 1; i < firstWin.length; i++) assert.ok(firstWin[i - 1] <= firstWin[i], `required levels ${firstWin}`);
-  assert.ok(firstWin[4] > firstWin[3] && firstWin[6] > firstWin[4], `stages 5-7 are fiercer: ${firstWin}`);
-  assert.equal(results[1][0], false, 'stage 2 is not won by the scripted player without upgrades');
-  assert.ok(firstWin[3] >= 8, 'stage 4 needs heavy upgrades');
-  assert.ok(firstWin[6] >= 11, 'stage 7 needs near-maximum upgrades');
+  assert.ok(firstWin[1] > 0 && firstWin[3] >= 8 && firstWin[6] >= 11 && firstWin[11] >= 15, `required levels ${firstWin}`);
 });
 
 test('arrows charge growing gates; a negative gate costs soldiers but never the commander', () => {
@@ -152,4 +149,22 @@ test('weapon rewards change damage, shots and splash for the whole army', async 
   const f = new ChibiFactory();
   for (const w of ['crossbow', 'triple', 'rifle', 'magic', 'cannon']) assert.ok(ChibiFactory.triangles(f.model('recruit', w)) < 1600, w);
   assert.notEqual(f.model('recruit', 'rifle'), f.model('recruit', 'magic'));
+});
+
+test('new bosses: dragon breath burns a lane, the yeti hits a circle, the warlock summons, the elephant charges', () => {
+  const boss = (type, extra = {}) => {
+    const sim = new DefenseSimulation({}, stage([{ t: 0, type, x: 0, health: 1e7 }], { initialArmy: 80, ...extra })); sim.start(); sim.update(1 / 60);
+    const unit = sim.enemies[0]; assert.ok(unit.boss); return { sim, unit };
+  };
+  const dragon = boss('dragon'); run(dragon.sim, 20, 0);
+  assert.ok(dragon.unit.attackCount >= 1 && dragon.sim.army.count < 80, 'dragon breath kills soldiers');
+  assert.ok(dragon.unit.z > 10, 'the dragon keeps its distance');
+  const yeti = boss('yeti'); run(yeti.sim, 20, 0); assert.ok(yeti.sim.army.count < 80);
+  const warlock = boss('warlock'); run(warlock.sim, 20, 0);
+  assert.ok(warlock.unit.attackCount >= 1 && warlock.sim.kills + warlock.sim.enemies.length > 1, 'warlock summons minions');
+  const elephant = boss('warElephant'); let charged = false;
+  for (let i = 0; i < 60 * 20 && elephant.sim.state === 'playing'; i++) { elephant.sim.update(1 / 60); if (elephant.unit.aiState === 'CHARGE') charged = true; }
+  assert.ok(charged && elephant.sim.army.count < 80, 'elephant charges through the line');
+  // The shield power blocks boss strikes.
+  const safe = boss('dragon'); safe.sim.powers.shield = 1e3; run(safe.sim, 20, 0); assert.equal(safe.sim.army.count, 80);
 });

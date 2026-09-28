@@ -7,6 +7,7 @@ import { TargetSystem } from '../systems/TargetSystem.js';
 import { ProjectileSystem } from '../systems/ProjectileSystem.js';
 import { CombatSystem } from '../systems/CombatSystem.js';
 import { EnemySystem } from '../systems/EnemySystem.js';
+import { BossSystem, BOSS_TYPES } from '../systems/BossSystem.js';
 import { CONFIG, clamp } from './Config.js';
 import { CHARACTERS } from '../data/characters.js';
 import { DEFENSE_STAGES, SPAWN_Z, PROP_SPEED, PACE } from '../data/defenseStages.js';
@@ -18,11 +19,11 @@ const PANEL_X = 3.6;
 export const GATE_CHARGE = 20;
 // Defence bows are shorter-ranged than the runner's: fights happen close to the line.
 export const DEFENSE_RANGE = 17;
-export const COIN_VALUE = { enemyGrunt: 1, enemyBrute: 4, desertBeast: 60, giantBoss: 150 };
+export const COIN_VALUE = { enemyGrunt: 1, enemyBrute: 4, desertBeast: 60, giantBoss: 150, dragon: 250, yeti: 200, warlock: 180, warElephant: 220 };
 const BREACH = { enemyGrunt: 1, enemyBrute: 3 };
 // Arrow-rain energy per kill; the ability is ready at ENERGY_MAX.
 export const ENERGY_MAX = 100;
-const ENERGY = { enemyGrunt: 1, enemyBrute: 4, desertBeast: 25, giantBoss: 40 };
+const ENERGY = { enemyGrunt: 1, enemyBrute: 4, desertBeast: 25, giantBoss: 40, dragon: 40, yeti: 40, warlock: 40, warElephant: 40 };
 export const POWER_TIME = { freeze: 5, fire: 8, shield: 7 };
 export const COMBO_STEPS = [10, 25, 50, 100, 150, 200, 300];
 
@@ -78,7 +79,7 @@ export class DefenseSimulation {
     this.peakArmy = this.army.count;
     this.energy = 0; this.rain = null; this.powers = { freeze: 0, fire: 0, shield: 0 }; this.combo = { count: 0, timer: 0, best: 0 };
     this.enemies = []; this.gates = []; this.barrels = []; this.props = []; this.targetables = []; this.archers = [];
-    this.movement = new MovementSystem(); this.targets = new TargetSystem(); this.enemyAI = new EnemySystem((unit, died) => this.hit(unit, died));
+    this.movement = new MovementSystem(); this.targets = new TargetSystem(); this.enemyAI = new EnemySystem((unit, died) => this.hit(unit, died)); this.bossAI = new BossSystem(this);
     this.projectiles = new ProjectileSystem((unit, died) => this.hit(unit, died)); this.projectiles.onSplash = bullet => this.splash(bullet);
     this.combat = new CombatSystem(this.targets, this.projectiles);
     this.lastEventTime = Math.max(...stage.events.map(e => e.t)) * PACE.time;
@@ -121,14 +122,19 @@ export class DefenseSimulation {
     } else if (event.type === 'barrel') {
       const barrel = new Barrel(event); this.barrels.push(barrel); this.props.push(barrel);
     } else if (event.type === 'horde') this.spawnHorde(event);
-    else {
+    else if (BOSS_TYPES.includes(event.type)) {
+      const giant = new CharacterEntity(event.type);
+      Object.assign(giant, { boss: true, aiState: 'APPROACH', timer: 0.5, attackCount: 0, telegraph: 0, tele: null, x: event.x || 0, z: SPAWN_Z + 2, aimAngle: Math.PI });
+      giant.speed *= PACE.speed; giant.maxHealth = giant.health = event.health || giant.health;
+      this.enemies.push(giant);
+    } else {
       const giant = event.type === 'boss' ? new GiantBoss(SPAWN_Z + 2) : new DesertBeast(SPAWN_Z + 1);
       giant.x = event.x || 0; giant.speed *= PACE.speed; giant.maxHealth = giant.health = event.health || giant.health;
       this.enemies.push(giant);
     }
     this.callbacks.onSpawn?.(event);
   }
-  spawnHorde(event) {
+  spawnHorde(event, spawnZ = SPAWN_Z) {
     const room = CONFIG.maxEnemyUnits - this.enemies.length;
     const count = Math.min(event.count, room);
     const brutesAlive = this.enemies.filter(u => u.type === 'enemyBrute').length;
@@ -141,7 +147,7 @@ export class DefenseSimulation {
       const unit = new CharacterEntity(type);
       const col = i % columns, row = Math.floor(i / columns);
       unit.x = clamp(event.x + (col - (columns - 1) / 2) * 0.72 + ((i * 37) % 7 - 3) * 0.03, -HALF + 0.4, HALF - 0.4);
-      unit.z = SPAWN_Z + row * 0.75 + ((i * 53) % 5) * 0.05;
+      unit.z = spawnZ + row * 0.75 + ((i * 53) % 5) * 0.05;
       unit.walkSpeed = (type === 'enemyBrute' ? Math.min(speed, CHARACTERS.enemyBrute.speed + 0.3) : speed) * PACE.speed * (0.95 + ((i * 13) % 10) * 0.01);
       unit.state = 'run'; unit.moving = true; unit.aimAngle = Math.PI; unit.projectileSpeed = 0;
       unit.maxHealth = unit.health = type === 'enemyBrute' ? this.data.bruteHp : this.data.gruntHp;
@@ -262,6 +268,13 @@ export class DefenseSimulation {
     else if (choice.type === 'army_add' && choice.value < 0) this.removeSoldiers(-choice.value);
     else this.army.upgrade(choice.type, choice.value);
   }
+  // Boss strikes: kill up to `limit` soldiers matching `test` (the commander last). Shield blocks.
+  killSoldiers(test, limit) {
+    if (this.powers.shield > 0 || limit <= 0) return 0;
+    const victims = this.army.units.filter(u => u.alive && test(u)).sort((a, b) => (a.type === 'commander') - (b.type === 'commander') || b.z - a.z).slice(0, limit);
+    for (const unit of victims) { unit.health = 0; unit.alive = false; unit.state = 'death'; this.callbacks.onHit?.(unit, true); }
+    return victims.length;
+  }
   removeSoldiers(count) {
     // Losses come from the back rows; the commander is the last to fall.
     const units = this.army.units;
@@ -272,7 +285,7 @@ export class DefenseSimulation {
     const army = this.army, rear = -army.depth - 1.2;
     for (const unit of this.enemies) {
       if (!unit.alive) continue;
-      if (unit.aiState) { this.enemyAI.update(dt, { active: true, units: [unit] }, army); continue; }
+      if (unit.aiState) { if (unit.boss) this.bossAI.update(dt, unit); else this.enemyAI.update(dt, { active: true, units: [unit] }, army); continue; }
       unit.hitTime = Math.max(0, unit.hitTime - dt);
       if (unit.archer && unit.z <= unit.holdZ) { unit.moving = false; continue; }
       unit.z -= unit.walkSpeed * dt; unit.moving = true;

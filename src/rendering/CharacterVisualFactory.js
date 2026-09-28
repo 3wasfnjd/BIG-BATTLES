@@ -21,7 +21,7 @@ export class CharacterVisualFactory {
     this.shadows.frustumCulled = false; this.shadows.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(this.shadows);
   }
   addBatch(type) {
-    const capacity = type === 'enemyGrunt' ? CONFIG.maxEnemyUnits : type === 'enemyBrute' ? BRUTE_CAPACITY : ['recruit', 'elite'].includes(type) ? CONFIG.maxPlayerUnits : this.procedural && ['giantBoss', 'desertBeast'].includes(type) ? 3 : 1;
+    const capacity = type === 'enemyGrunt' ? CONFIG.maxEnemyUnits : type === 'enemyBrute' ? BRUTE_CAPACITY : ['recruit', 'elite'].includes(type) ? CONFIG.maxPlayerUnits : this.procedural && ['giantBoss', 'desertBeast', 'dragon', 'yeti', 'warlock', 'warElephant'].includes(type) ? 3 : 1;
     const batch = { type, capacity, hero: !['recruit', 'elite', 'enemyGrunt', 'enemyBrute'].includes(type), meshes: [], frames: [], clips: {}, count: 0, custom: false, animated: null, action: null, loadState: 'placeholder' };
     if (this.procedural) {
       // Procedural chibi poses are ready synchronously; no GLB request or fallback swap.
