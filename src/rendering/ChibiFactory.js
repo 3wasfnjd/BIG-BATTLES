@@ -112,8 +112,8 @@ function limb(rig, s, color, bone, a, b, radius) {
 }
 
 function humanoid(kind, s) {
-  const player = kind !== 'enemyGrunt';
-  const p = player ? PALETTES.player : PALETTES.enemy;
+  const brute = kind === 'enemyBrute', player = kind !== 'enemyGrunt' && !brute;
+  const p = player ? PALETTES.player : brute ? { ...PALETTES.enemy, metal: '#3b3440', metalDark: '#241f28', cloth: '#b22631' } : PALETTES.enemy;
   const elite = kind === 'elite', commander = kind === 'commander';
   const rig = new Rig();
   // Legs and boots.
@@ -172,6 +172,11 @@ function humanoid(kind, s) {
     rig.add(s.lowSphere, '#e0473d', 'head', T(0, 1.14, -0.2, 0, 0, 0, 0.035, 0.035, 0.02), { ao: false });
     // Sash.
     rig.add(s.box, p.trim, 'body', T(0, 0.48, 0, 0, 0, 0.75, 0.07, 0.62, 0.52));
+  } else if (brute) {
+    // Brute: dark iron helmet with bull horns.
+    rig.add(s.hood(110, Math.PI * 0.58), p.metal, 'head', T(0, 0.92, 0, 0, 0, 0, 0.31, 0.31, 0.31));
+    for (const side of [-1, 1]) rig.add(s.cone, '#efe6d2', 'head', T(side * 0.3, 1.12, 0, 0, 0, side * -0.9, 0.06, 0.26, 0.06));
+    for (const side of [-1, 1]) rig.add(s.hood(0, Math.PI * 0.5), p.metal, 'body', T(side * 0.25, 0.6, 0, 0, 0, side * -0.5, 0.15, 0.12, 0.15));
   } else {
     // Enemy: tall pointed hood with the face open toward the player.
     rig.add(s.hood(120, Math.PI * 0.6), p.metal, 'head', T(0, 0.9, 0.01, 0, 0, 0, 0.305, 0.3, 0.3));
@@ -193,6 +198,12 @@ function humanoid(kind, s) {
     for (const side of [-1, 1]) rig.add(s.tinySphere, p.trim, 'arms', T(side * 0.23, 0.55, -0.48, 0, 0, 0, 0.035, 0.035, 0.035));
     rig.add(s.cyl, p.steel, 'arms', T(0, 0.585, -0.55, Math.PI / 2, 0, 0, 0.013, 0.34, 0.013));
     rig.add(s.cone, p.trim, 'arms', T(0, 0.585, -0.74, -Math.PI / 2, 0, 0, 0.028, 0.08, 0.028));
+  } else if (brute) {
+    // Brute: huge spiked club held in both hands.
+    // Club resting on the right shoulder so the face stays visible.
+    rig.add(s.cyl, p.wood, 'arms', T(0.3, 0.66, 0.02, 0.5, 0, -0.25, 0.035, 0.6, 0.035));
+    rig.add(s.sphere, '#4a3a30', 'arms', T(0.38, 0.93, 0.16, 0.5, 0, -0.25, 0.12, 0.16, 0.12));
+    for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; rig.add(s.cone, p.steel, 'arms', T(0.38 + Math.cos(a) * 0.12, 0.95, 0.16 + Math.sin(a) * 0.12, Math.sin(a) * 1.5, 0, -Math.cos(a) * 1.5, 0.03, 0.09, 0.03)); }
   } else {
     // Round shield with rings on the left arm and a short spear in the right.
     rig.add(s.cyl, p.metal, 'arms', T(-0.25, 0.46, -0.27, Math.PI / 2, 0, 0, 0.23, 0.05, 0.23));
@@ -336,7 +347,7 @@ export class ChibiFactory {
   // Returns { frames: [{ parts }], clips } matching the shared crowd batch format.
   model(type) {
     if (this.cache.has(type)) return this.cache.get(type);
-    const shapes = ['recruit', 'elite', 'enemyGrunt'].includes(type) ? this.crowdShapes : this.shapes;
+    const shapes = ['recruit', 'elite', 'enemyGrunt', 'enemyBrute'].includes(type) ? this.crowdShapes : this.shapes;
     const { rig, bones } = type === 'desertBeast' ? golem(shapes) : type === 'giantBoss' ? knight(shapes) : humanoid(type, shapes);
     const clips = ['desertBeast', 'giantBoss'].includes(type) ? giantClips(type === 'giantBoss') : humanClips();
     const { body, glow } = this.materials();

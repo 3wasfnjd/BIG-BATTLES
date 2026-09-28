@@ -11,7 +11,8 @@ import { EnemyHorde } from '../src/entities/EnemyHorde.js';
 
 export async function loadAssets() {
   const assets = new AssetManager(), loader = new GLTFLoader();
-  for (const def of Object.values(CHARACTERS)) {
+  // The defence-only brute has no GLB; it uses the procedural chibi or placeholder.
+  for (const def of Object.values(CHARACTERS).filter(d => d.modelUrl)) {
     const file = await readFile(new URL(`../${def.modelUrl}`, import.meta.url));
     const gltf = await loader.parseAsync(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength), '');
     assets.models.set(def.modelUrl, Promise.resolve(gltf));
@@ -21,7 +22,7 @@ export async function loadAssets() {
 
 test('all six committed GLBs parse, contain five working clips, and meet mobile prototype budgets', async () => {
   const assets = await loadAssets(), point = new THREE.Vector3();
-  for (const [type, def] of Object.entries(CHARACTERS)) {
+  for (const [type, def] of Object.entries(CHARACTERS).filter(([, d]) => d.modelUrl)) {
     const gltf = await assets.loadModel(def.modelUrl), scene = gltf.scene;
     assert.deepEqual(gltf.animations.map(c => c.name).sort(), Object.values(def.animations).sort());
     let triangles = 0, rigs = 0;
