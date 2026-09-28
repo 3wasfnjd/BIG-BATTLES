@@ -13,6 +13,8 @@ export const CHARACTERS = {
   yeti: { team: 'enemy', health: 40000, damage: 0, fireRate: 0, speed: 2.4, range: 13, radius: 1.4, windup: 0.8, cooldown: 1.6, width: 2.6, limit: 10, ...visual('giant-boss', 2.9, 'animated'), modelUrl: null, animations: { ...meleeAnimations } },
   warlock: { team: 'enemy', health: 30000, damage: 0, fireRate: 0, speed: 2.2, range: 18, radius: 1.0, windup: 0.8, cooldown: 2.6, summon: 10, ...visual('giant-boss', 2.6, 'animated'), modelUrl: null, animations: { ...meleeAnimations } },
   warElephant: { team: 'enemy', health: 45000, damage: 0, fireRate: 0, speed: 2.6, range: 12, radius: 1.6, windup: 1.0, cooldown: 2.0, width: 1.9, limit: 18, charge: 15, ...visual('giant-boss', 3.2, 'animated'), modelUrl: null, animations: { ...meleeAnimations } },
+  // Friendly giant summoned by the 'giants' ability (defence mode).
+  allyGiant: { team: 'player', health: 6000, damage: 0, fireRate: 0, speed: 2.2, range: 0, radius: 1.2, windup: 0.45, cooldown: 0.5, ...visual('giant-boss', 3.2, 'animated'), modelUrl: null, animations: { ...meleeAnimations } },
   desertBeast: { team: 'enemy', health: 5000, damage: 14, fireRate: 0.8, speed: 3.6, range: 3.8, radius: 1.1, attackLimit: 3, windup: 0.6, cooldown: 1.1, ...visual('desert-beast', 1.5, 'animated'), animations: { ...meleeAnimations } },
   giantBoss: { team: 'enemy', health: 36000, damage: 18, fireRate: 0.6, speed: 3.2, range: 4.4, radius: 1.4, attackLimit: 4, smashDamage: 29, smashRadius: 4.7, smashLimit: 12, windup: 0.8, cooldown: 1.0, ...visual('giant-boss', 2.6, 'animated'), animations: { ...meleeAnimations } },
 };

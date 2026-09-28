@@ -8,7 +8,7 @@ export const QUALITY_CHARACTERS = {
 };
 // Arcade chibi proportions: bigger bodies in the same gameplay slots (radius and
 // spacing are unchanged), so the crowd reads as a packed army like arcade runners.
-const ARCADE_SCALE = { commander: 1.55, recruit: 1.14, elite: 1.2, enemyGrunt: 1.16, enemyBrute: 1.55, desertBeast: 2.6, giantBoss: 4.1, dragon: 3.4, yeti: 3.2, warlock: 2.9, warElephant: 3.4 };
+const ARCADE_SCALE = { commander: 1.55, recruit: 1.14, elite: 1.2, enemyGrunt: 1.16, enemyBrute: 1.55, desertBeast: 2.6, giantBoss: 4.1, dragon: 3.4, yeti: 3.2, warlock: 2.9, warElephant: 3.4, allyGiant: 3.3 };
 export const ARCADE_CHARACTERS = Object.fromEntries(Object.entries(CHARACTERS).map(([key, def]) => [key, { ...def, scale: ARCADE_SCALE[key] ?? def.scale, offsetY: key === 'dragon' ? 1.3 : def.offsetY, artStatus: 'procedural-chibi' }]));
 // Default look: procedural chibi arcade renderer. ?classic=1 and ?quality=1 keep the
 // earlier GLB-based looks available for comparison.

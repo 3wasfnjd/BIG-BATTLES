@@ -144,3 +144,14 @@ body.defense #hud .sound-toggle,body.defense #pause{width:40px;height:40px;font-
 #stage-picker button small{position:absolute;left:0;right:0;bottom:2px;font-size:13px;letter-spacing:0;color:#f5a623;-webkit-text-stroke:0;line-height:1}
 #daily-gift{font-family:'Lalezar',sans-serif;font-size:21px;padding:7px 22px 10px;border:3px solid #5a1a40;border-radius:16px;box-shadow:0 4px 0 #5a1a40;background:linear-gradient(#ff8fd0,#d8408c);color:#fff;text-shadow:0 2px 0 #5a1a40;pointer-events:auto;animation:rain-ready 1.2s ease-in-out infinite}
 #banner.weapon b{background:linear-gradient(90deg,transparent,#4a1a9ae6 18%,#4a1a9ae6 82%,transparent);-webkit-text-stroke-color:#1a0640;text-shadow:0 4px 0 #1a0640}
+/* Extra abilities stacked above arrow rain. */
+.ability{position:absolute;right:22px;z-index:2;width:70px;height:70px;border-radius:50%;border:4px solid #0f3550;background:#0f3550cc;box-shadow:0 4px 0 #0f3550;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:auto;overflow:hidden;--charge:0}
+#giants-btn{bottom:calc(206px + env(safe-area-inset-bottom))}
+#cannons-btn{bottom:calc(122px + env(safe-area-inset-bottom))}
+.ability .ring{position:absolute;inset:0;background:conic-gradient(#8fd0ff calc(var(--charge)*1turn),transparent 0);opacity:.85}
+.ability::after{content:'';position:absolute;inset:6px;border-radius:50%;background:#123f60}
+.ability .icon,.ability small{position:relative;z-index:1}
+.ability .icon{font-size:24px;line-height:1}
+.ability small{font-family:'Lalezar',sans-serif;font-size:11px;color:#fff}
+.ability.ready{animation:rain-ready .9s ease-in-out infinite}
+.ability.ready::after{background:linear-gradient(#8fd0ff,#2f78e0)}

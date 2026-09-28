@@ -66,6 +66,14 @@ The game now plays like Mob Control: **your army holds its line and only slides 
 
 ![New bosses](docs/defense/bosses.jpg)
 
+- **Giants and artillery abilities** (added 2026-09-28): two more buttons charge with kills, like arrow rain:
+  - 🗿 **Giants**: two blue-and-gold armoured giants step in front of the army for about 16 s. They smash nearby enemies and block walkers, which die on contact while the giant absorbs the hit.
+  - 💣 **Artillery**: two cannons at the road edges fire explosive shells at the front of the horde for about 12 s.
+
+  A new shop upgrade, ✨ **ability power**, raises the damage and duration of arrow rain, giants and artillery. Stage 7 was eased by about 20% after feedback. The scripted player (using every ability) now needs levels 0/1/3/6/8/9/9/11/12/12/14/15 for stages 1–12.
+
+![Giants and artillery](docs/defense/abilities.jpg)
+
 - **Clash effects**: when a walker reaches the line, a white-gold burst with fast metal sparks appears, and a brute adds a camera kick.
 - **Feedback effects**: damage numbers over giants, coin pop-ups for brutes and giants, dust rings where units fall, bigger barrel bursts, a glowing ring under the commander, stage/wave/boss announcement banners with camera kick, a themed vignette and victory confetti.
 - Also fixed: a stage could end as a victory while a gate or barrel was still approaching.

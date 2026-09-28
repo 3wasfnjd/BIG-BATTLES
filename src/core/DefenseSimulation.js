@@ -25,6 +25,8 @@ const BREACH = { enemyGrunt: 1, enemyBrute: 3 };
 export const ENERGY_MAX = 100;
 const ENERGY = { enemyGrunt: 1, enemyBrute: 4, desertBeast: 25, giantBoss: 40, dragon: 40, yeti: 40, warlock: 40, warElephant: 40 };
 export const POWER_TIME = { freeze: 5, fire: 8, shield: 7 };
+// Summoned giants and the artillery battery charge more slowly than arrow rain.
+export const GIANTS_MAX = 220, CANNONS_MAX = 160, GIANTS_TIME = 16, CANNONS_TIME = 12;
 export const COMBO_STEPS = [10, 25, 50, 100, 150, 200, 300];
 
 // Gate panels and barrels are shootable props that share the projectile/damage path.
@@ -77,7 +79,7 @@ export class DefenseSimulation {
     for (const unit of this.army.units) this.army.applyWeapon(unit);
     this.base = { hp: stage.baseHp + this.perks.fort, maxHp: stage.baseHp + this.perks.fort };
     this.peakArmy = this.army.count;
-    this.energy = 0; this.rain = null; this.powers = { freeze: 0, fire: 0, shield: 0 }; this.combo = { count: 0, timer: 0, best: 0 };
+    this.energy = 0; this.giantEnergy = 0; this.cannonEnergy = 0; this.allies = []; this.turrets = []; this.rain = null; this.powers = { freeze: 0, fire: 0, shield: 0 }; this.combo = { count: 0, timer: 0, best: 0 };
     this.enemies = []; this.gates = []; this.barrels = []; this.props = []; this.targetables = []; this.archers = [];
     this.movement = new MovementSystem(); this.targets = new TargetSystem(); this.enemyAI = new EnemySystem((unit, died) => this.hit(unit, died)); this.bossAI = new BossSystem(this);
     this.projectiles = new ProjectileSystem((unit, died) => this.hit(unit, died)); this.projectiles.onSplash = bullet => this.splash(bullet);
@@ -91,7 +93,9 @@ export class DefenseSimulation {
   // Every enemy kill: coins, ability energy and the combo chain.
   registerKill(unit) {
     this.kills++; this.coins += this.coinValue(unit);
-    this.energy = Math.min(ENERGY_MAX, this.energy + (ENERGY[unit.type] || 1));
+    const gain = ENERGY[unit.type] || 1;
+    this.energy = Math.min(ENERGY_MAX, this.energy + gain);
+    this.giantEnergy = Math.min(GIANTS_MAX, this.giantEnergy + gain); this.cannonEnergy = Math.min(CANNONS_MAX, this.cannonEnergy + gain);
     const combo = this.combo; combo.count++; combo.timer = 1.6; combo.best = Math.max(combo.best, combo.count);
     if (COMBO_STEPS.includes(combo.count)) {
       const bonus = Math.round(combo.count * 0.5 * (this.data.coinScale || 1));
@@ -103,6 +107,66 @@ export class DefenseSimulation {
     if (this.state !== 'playing' || this.energy < ENERGY_MAX || this.rain) return false;
     this.energy = 0; this.rain = { x: this.army.center.x, timer: 0.55 };
     this.callbacks.onRain?.(this.rain.x); return true;
+  }
+  // Giants ability: two friendly giants step in front of the army and smash what comes.
+  useGiants() {
+    if (this.state !== 'playing' || this.giantEnergy < GIANTS_MAX) return false;
+    this.giantEnergy = 0; const power = this.perks.abilities, cx = this.army.center.x;
+    for (const side of [-1, 1]) {
+      const ally = new CharacterEntity('allyGiant');
+      Object.assign(ally, { ally: true, aiState: 'APPROACH', timer: 0.3, attackCount: 0, x: clamp(cx + side * 2.4, -5.6, 5.6), z: 1.2, aimAngle: 0, life: GIANTS_TIME * (1 + (power - 1) * 0.66) });
+      ally.maxHealth = ally.health = 6000 * power;
+      this.allies.push(ally);
+    }
+    this.callbacks.onGiants?.(this.allies); return true;
+  }
+  // Artillery ability: two cannons at the road edges shell the front of the horde.
+  useCannons() {
+    if (this.state !== 'playing' || this.cannonEnergy < CANNONS_MAX) return false;
+    this.cannonEnergy = 0; const power = this.perks.abilities;
+    this.turrets = [-1, 1].map(side => ({ x: side * 5.1, z: 2.2, timer: 0.3 + (side > 0 ? 0.2 : 0), life: CANNONS_TIME * (1 + (power - 1) * 0.66), recoil: 0 }));
+    this.callbacks.onCannons?.(this.turrets); return true;
+  }
+  updateAllies(dt) {
+    const power = this.perks.abilities;
+    for (const ally of this.allies) {
+      if (!ally.alive) continue;
+      ally.life -= dt; ally.timer -= dt; ally.hitTime = Math.max(0, ally.hitTime - dt);
+      if (ally.life <= 0 || ally.health <= 0) { ally.alive = false; ally.health = 0; this.callbacks.onHit?.(ally, true); continue; }
+      // Head for the nearest threat in front, then hold near the line.
+      let near = null, best = Infinity;
+      for (const e of this.enemies) if (e.alive && e.z > ally.z - 1 && e.z < 18) { const d = Math.abs(e.x - ally.x) + (e.z - ally.z) * 0.5; if (d < best) { best = d; near = e; } }
+      if (near) ally.x += Math.sign(near.x - ally.x) * Math.min(Math.abs(near.x - ally.x), ally.speed * dt);
+      ally.x = clamp(ally.x, -6, 6);
+      if (ally.z < 4.5) ally.z += ally.speed * 0.6 * dt;
+      ally.moving = ally.aiState === 'APPROACH' && !!near;
+      if (ally.aiState === 'APPROACH' && ally.timer <= 0 && near && Math.abs(near.x - ally.x) < 3 && near.z - ally.z < 4.5) { ally.aiState = 'ATTACK'; ally.timer = CHARACTERS.allyGiant.windup; ally.windupMax = ally.timer; }
+      else if (ally.aiState === 'ATTACK' && ally.timer <= 0) {
+        const sx = ally.x, sz = ally.z + 1.8;
+        for (const e of this.enemies) if (e.alive && (e.x - sx) ** 2 + (e.z - sz) ** 2 < 9) this.strike(e, e.aiState ? e.maxHealth * 0.025 * power : this.data.bruteHp * 0.9 * power);
+        this.callbacks.onSmash?.(sx, sz);
+        ally.aiState = 'COOLDOWN'; ally.timer = CHARACTERS.allyGiant.cooldown;
+      } else if (ally.aiState === 'COOLDOWN' && ally.timer <= 0) { ally.aiState = 'APPROACH'; ally.timer = 0; }
+    }
+    this.allies = this.allies.filter(a => a.alive);
+  }
+  updateTurrets(dt) {
+    const power = this.perks.abilities;
+    for (const turret of this.turrets) {
+      turret.life -= dt; turret.timer -= dt; turret.recoil = Math.max(0, turret.recoil - dt * 4);
+      if (turret.timer > 0 || turret.life <= 0) continue;
+      let target = null;
+      for (const e of this.enemies) if (e.alive && e.z < 28 && (!target || (e.aiState ? 0 : e.z) < (target.aiState ? 0 : target.z))) target = e;
+      if (!target) { turret.timer = 0.15; continue; }
+      const source = { x: turret.x, z: turret.z, team: 'player', damage: this.data.bruteHp * 0.45 * power, projectileSpeed: 26 };
+      if (this.projectiles.fire(source, target)) {
+        const shell = this.projectiles.pool.active[this.projectiles.pool.active.length - 1];
+        Object.assign(shell, { kind: 'cannon', splash: 2.6, share: 0.7, startDist: Math.hypot(target.x - turret.x, target.z - turret.z) });
+        turret.recoil = 1; this.callbacks.onTurretFire?.(turret);
+      }
+      turret.timer = 0.42;
+    }
+    this.turrets = this.turrets.filter(t => t.life > 0);
   }
   strike(unit, damage) { if (unit.alive) this.hit(unit, unit.takeDamage(damage)); }
   lightning() {
@@ -171,11 +235,12 @@ export class DefenseSimulation {
     if (this.combo.timer > 0 && (this.combo.timer -= dt) <= 0) this.combo.count = 0;
     if (this.rain && (this.rain.timer -= dt) <= 0) {
       const x = this.rain.x; this.rain = null;
-      for (const unit of this.enemies) if (unit.alive && unit.z < 26 && Math.abs(unit.x - x) < 6.8) this.strike(unit, unit.aiState ? unit.maxHealth * 0.06 : this.data.bruteHp * 0.7);
+      const power = this.perks.abilities;
+      for (const unit of this.enemies) if (unit.alive && unit.z < 26 && Math.abs(unit.x - x) < 6.8) this.strike(unit, (unit.aiState ? unit.maxHealth * 0.06 : this.data.bruteHp * 0.7) * power);
       this.callbacks.onRainImpact?.(x);
     }
     const slow = this.powers.freeze > 0 ? 0.3 : 1;
-    this.updateGates(dt); this.updateBarrels(dt); this.updateEnemies(dt * slow);
+    this.updateGates(dt); this.updateBarrels(dt); this.updateEnemies(dt * slow); this.updateAllies(dt); this.updateTurrets(dt);
     // Soldiers shoot enemies first; with nothing in range they shoot barrels and growing gates.
     this.targets.update(dt, army.units, this.enemies);
     this.shoot(dt);
@@ -291,6 +356,9 @@ export class DefenseSimulation {
       unit.z -= unit.walkSpeed * dt; unit.moving = true;
       // Close in on the army sideways a little: dodging never fully avoids a horde.
       if (unit.z < 16) { const dx = army.center.x - unit.x; unit.x += Math.sign(dx) * Math.min(Math.abs(dx), 0.45 * dt); }
+      // Summoned giants block walkers: the walker dies and the giant takes the blow.
+      const wall = this.allies.find(a => a.alive && Math.abs(a.x - unit.x) < 1.5 && Math.abs(a.z - unit.z) < 1.3);
+      if (wall) { wall.health -= unit.type === 'enemyBrute' ? 380 : 110; wall.hitTime = 0.12; unit.health = 0; unit.alive = false; this.registerKill(unit); this.callbacks.onClash?.(unit, 0); this.callbacks.onHit?.(unit, true); continue; }
       const inside = Math.abs(unit.x - army.center.x) <= army.halfWidth + unit.radius;
       if (inside && unit.z <= 0.35 + unit.radius) this.contact(unit);
       else if (unit.z < rear) {

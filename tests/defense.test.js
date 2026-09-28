@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { DefenseSimulation, GATE_CHARGE, ENERGY_MAX, POWER_TIME } from '../src/core/DefenseSimulation.js';
+import { DefenseSimulation, GATE_CHARGE, ENERGY_MAX, POWER_TIME, GIANTS_MAX, CANNONS_MAX } from '../src/core/DefenseSimulation.js';
 import { Progress, starsFor } from '../src/core/Progress.js';
 import { DEFENSE_STAGES, SPAWN_Z } from '../src/data/defenseStages.js';
 import { play } from '../tools/balance-defense.mjs';
@@ -29,7 +29,7 @@ test('stages get harder: each needs more upgrades, and the last needs most of th
   assert.equal(DEFENSE_STAGES.length, 12);
   assert.ok(firstWin.every(level => level !== undefined), 'every stage is winnable with upgrades');
   for (let i = 1; i < firstWin.length; i++) assert.ok(firstWin[i - 1] <= firstWin[i], `required levels ${firstWin}`);
-  assert.ok(firstWin[1] > 0 && firstWin[3] >= 8 && firstWin[6] >= 11 && firstWin[11] >= 15, `required levels ${firstWin}`);
+  assert.ok(firstWin[1] > 0 && firstWin[3] >= 5 && firstWin[6] >= 8 && firstWin[6] <= 10 && firstWin[11] >= 14, `required levels ${firstWin}`);
 });
 
 test('arrows charge growing gates; a negative gate costs soldiers but never the commander', () => {
@@ -167,4 +167,21 @@ test('new bosses: dragon breath burns a lane, the yeti hits a circle, the warloc
   assert.ok(charged && elephant.sim.army.count < 80, 'elephant charges through the line');
   // The shield power blocks boss strikes.
   const safe = boss('dragon'); safe.sim.powers.shield = 1e3; run(safe.sim, 20, 0); assert.equal(safe.sim.army.count, 80);
+});
+
+test('giants and artillery abilities: charged by kills, then fight on the army\'s side', () => {
+  const sim = new DefenseSimulation({}, stage([{ t: 0, type: 'horde', count: 60, x: 0, width: 8, brutes: 6 }], { gruntHp: 400, bruteHp: 900 }));
+  sim.start(); sim.update(1 / 60);
+  assert.equal(sim.useGiants(), false); assert.equal(sim.useCannons(), false);
+  sim.giantEnergy = GIANTS_MAX; sim.cannonEnergy = CANNONS_MAX;
+  assert.equal(sim.useGiants(), true); assert.equal(sim.allies.length, 2); assert.equal(sim.giantEnergy, 0);
+  assert.equal(sim.useCannons(), true); assert.equal(sim.turrets.length, 2);
+  const army = sim.army.count;
+  run(sim, 14, 0);
+  assert.ok(sim.kills >= 20, `abilities killed ${sim.kills}`);
+  assert.ok(sim.army.count >= army - 5, 'giants shield the line');
+  run(sim, 10, 0);
+  assert.equal(sim.turrets.length, 0, 'artillery expires');
+  for (let i = 0; i < 25; i++) sim.registerKill({ type: 'enemyBrute' });
+  assert.ok(sim.giantEnergy > 0 && sim.cannonEnergy > 0);
 });

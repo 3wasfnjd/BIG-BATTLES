@@ -263,9 +263,10 @@ function golem(s) {
 }
 
 // Giant armoured knight boss with a spiked flail.
-function knight(s) {
+function knight(s, ally = false) {
   const rig = new Rig();
-  const steel = '#6a7690', steelDark = '#3a4152', silver = '#dfe5ee', red = '#c3222e', gold = '#f0c050';
+  // The same armoured giant fights for the player in blue and gold.
+  const steel = ally ? '#3f7fe0' : '#6a7690', steelDark = ally ? '#244f9e' : '#3a4152', silver = ally ? '#ffe08a' : '#dfe5ee', red = ally ? '#f2c14e' : '#c3222e', gold = ally ? '#ffffff' : '#f0c050';
   const bones = {
     body: { pivot: V(0, 0.5, 0) }, head: { pivot: V(0, 1.0, 0), parent: 'body' },
     armL: { pivot: V(-0.36, 0.95, 0), parent: 'body' }, armR: { pivot: V(0.36, 0.95, 0), parent: 'body' },
@@ -484,9 +485,9 @@ export class ChibiFactory {
     const key = `${type}:${weapon}`;
     if (this.cache.has(key)) return this.cache.get(key);
     const shapes = ['recruit', 'elite', 'enemyGrunt', 'enemyBrute'].includes(type) ? this.crowdShapes : this.shapes;
-    const giants = { desertBeast: golem, giantBoss: knight, dragon, yeti, warlock, warElephant: elephant };
+    const giants = { desertBeast: golem, giantBoss: knight, allyGiant: sh => knight(sh, true), dragon, yeti, warlock, warElephant: elephant };
     const { rig, bones } = giants[type] ? giants[type](shapes) : humanoid(type, shapes, weapon);
-    const clips = giants[type] ? giantClips(type === 'giantBoss' || type === 'yeti') : humanClips();
+    const clips = giants[type] ? giantClips(type === 'giantBoss' || type === 'yeti' || type === 'allyGiant') : humanClips();
     const { body, glow } = this.materials();
     const frames = [], outClips = {};
     for (const [state, clip] of Object.entries(clips)) {

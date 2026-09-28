@@ -194,7 +194,7 @@ export const DEFENSE_STAGES = [
   },
   {
     id: 7, name: 'القمر الدامي', initialArmy: 10, baseHp: 5, clearBonus: 3000, coinScale: 3.2,
-    gruntSpeed: 3.8, gruntHp: 231, bruteHp: 1480, archerDamage: 14, archerRange: 14.5,
+    gruntSpeed: 3.8, gruntHp: 185, bruteHp: 1180, archerDamage: 14, archerRange: 14.5,
     events: [
       gate(0, add(-12), mul(2)),
       horde(1, 50, -3.5, { brutes: 5, archers: 10, speed: 4 }), horde(2, 50, 3.5, { brutes: 5, archers: 10, speed: 4 }),
