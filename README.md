@@ -32,6 +32,18 @@ The game now plays like Mob Control: **your army holds its line and only slides 
 ![Stages 5-7](docs/defense/stages-5-7.jpg)
 
 - **Music and sound** (`src/core/Audio.js`): everything is synthesised with the Web Audio API, so there are no audio files. The music is a D-minor battle loop with taiko drums, bass and a string ostinato; a brass lead joins while a giant is on the field. Sound effects cover arrow volleys, hits, kills, enemy arrows, metal clashes when a walker hits the line, gates, barrels, coins, giant roars, castle breaches, thunder and victory/defeat fanfares. All are throttled for large fights. There is a mute button in the HUD and the start menu, remembered per browser.
+- **Rewards and abilities** (added 2026-09-28):
+  - **Power barrels**, coloured by type: ❄ freeze (enemies at 30% speed for 5 s), 🔥 fire arrows (double damage for 8 s, orange tracers), 🛡 shield (7 s with no losses at the line and no castle damage, shown as a dome over the army), ⚡ lightning (beams strike the 14 strongest enemies).
+  - **Treasure chests** 💰: coins, multiplied by the stage coin scale.
+  - **Arrow rain**: kills charge a button (a grunt gives 1, a brute 4, a beast 25, a boss 40, 100 to fill). Pressing it drops 90 arrows in front of the army; after their flight they hit everything within 6.8 m of the army's lane.
+  - **Combo**: chaining kills pays bonus coins at 10/25/50/100/150/200/300.
+  - **Stars**: 1–3 per stage by castle hearts left, with 40 × stage coins per new star, shown in the stage picker and on the victory screen.
+  - **Daily gift** 🎁: once per day, growing with a streak of up to 7 days.
+
+  These abilities make fights easier, so enemy HP was raised again: the scripted player (which also uses arrow rain) needs upgrade levels 1/2/4/8/9/10/11 for stages 1–7.
+
+![Rewards](docs/defense/rewards.jpg)
+
 - **Clash effects**: when a walker reaches the line, a white-gold burst with fast metal sparks appears, and a brute adds a camera kick.
 - **Feedback effects**: damage numbers over giants, coin pop-ups for brutes and giants, dust rings where units fall, bigger barrel bursts, a glowing ring under the commander, stage/wave/boss announcement banners with camera kick, a themed vignette and victory confetti.
 - Also fixed: a stage could end as a victory while a gate or barrel was still approaching.

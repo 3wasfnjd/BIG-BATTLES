@@ -47,7 +47,7 @@ function flush(mesh, count) {
 export class ArcadeEffects {
   constructor(scene) {
     this.dummy = new THREE.Object3D(); this.color = new THREE.Color();
-    this.colors = { clash: new THREE.Color('#fff6c8'), halo: new THREE.Color('#ffcf4a').multiplyScalar(0.55), player: new THREE.Color('#ffa414'), enemy: new THREE.Color('#ff4b3a'), playerHit: new THREE.Color('#fff2b0'), enemyHit: new THREE.Color('#ff8a4a'), death: new THREE.Color('#ff5f45'), playerDeath: new THREE.Color('#7dffb0') };
+    this.colors = { fire: new THREE.Color('#ff4a12'), fireHalo: new THREE.Color('#ff7a2a').multiplyScalar(0.7), clash: new THREE.Color('#fff6c8'), halo: new THREE.Color('#ffcf4a').multiplyScalar(0.55), player: new THREE.Color('#ffa414'), enemy: new THREE.Color('#ff4b3a'), playerHit: new THREE.Color('#fff2b0'), enemyHit: new THREE.Color('#ff8a4a'), death: new THREE.Color('#ff5f45'), playerDeath: new THREE.Color('#7dffb0') };
     const glow = glowTexture(), star = starTexture(), trail = trailTexture();
     const flat = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
     // Solid bolt body (shaft + head) and an additive tracer per projectile.
@@ -69,7 +69,18 @@ export class ArcadeEffects {
     this.fill = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ff6a3a', transparent: true, opacity: 0.25, depthWrite: false }));
     for (const mesh of [this.ring, this.disc, this.fill]) { mesh.visible = false; mesh.renderOrder = 2; scene.add(mesh); }
     this.shake = 0;
+    // Arrow rain: bolts falling from the sky. Lightning: vertical beams.
+    this.skyBolts = instanced(this.bolts.geometry, this.bolts.material, 90, scene);
+    this.skyTrails = instanced(this.trails.geometry, this.trails.material, 90, scene);
+    this.falling = [];
+    this.beams = instanced(new THREE.BoxGeometry(0.35, 16, 0.35).translate(0, 8, 0), new THREE.MeshBasicMaterial({ color: '#dfe8ff', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }), 24, scene);
+    this.strikes = [];
   }
+  rain(x) {
+    this.falling.length = 0;
+    for (let i = 0; i < 90; i++) this.falling.push({ x: x + (Math.random() - 0.5) * 13, z: 2 + Math.random() * 24, y: 16 + Math.random() * 6, delay: Math.random() * 0.25, landed: false });
+  }
+  lightning(points) { this.strikes = points.map(p => ({ ...p, life: 0.4 })); for (const p of points) this.clash(p.x, p.z, false); this.shake = Math.max(this.shake, 0.5); }
   hit(unit, died) {
     const effect = this.pool.acquire(); if (!effect) return;
     const big = unit.type === 'giantBoss' || unit.type === 'desertBeast' || (died && unit.type === 'barrel');
@@ -97,8 +108,8 @@ export class ArcadeEffects {
       const dx = bullet.tx - bullet.x, dz = -(bullet.tz - bullet.z), yaw = Math.atan2(dx, dz) + Math.PI;
       d.position.set(bullet.x, bullet.y, -bullet.z); d.rotation.set(0, yaw, 0); d.scale.setScalar(1); d.updateMatrix();
       this.bolts.setMatrixAt(count, d.matrix); this.trails.setMatrixAt(count, d.matrix); this.halos.setMatrixAt(count, d.matrix);
-      const color = this.colors[bullet.team];
-      this.trails.setColorAt(count, color); this.halos.setColorAt(count, bullet.team === 'player' ? this.colors.halo : color); this.bolts.setColorAt(count, bullet.team === 'player' ? this.colors.playerHit : color);
+      const color = bullet.fire ? this.colors.fire : this.colors[bullet.team];
+      this.trails.setColorAt(count, color); this.halos.setColorAt(count, bullet.fire ? this.colors.fireHalo : bullet.team === 'player' ? this.colors.halo : color); this.bolts.setColorAt(count, bullet.team === 'player' ? this.colors.playerHit : color);
       count++;
     }
     flush(this.bolts, count); flush(this.trails, count); flush(this.halos, count);
@@ -132,6 +143,24 @@ export class ArcadeEffects {
       }
     }
     flush(this.flashes, flashes); flush(this.sparks, sparks); flush(this.puffs, puffs);
+    let fallen = 0;
+    for (const b of this.falling) {
+      if ((b.delay -= dt) > 0 || b.landed) continue;
+      b.y -= 34 * dt;
+      if (b.y <= 0.2) { b.landed = true; if (Math.random() < 0.45) this.clash(b.x, b.z, false); continue; }
+      d.position.set(b.x, b.y, -b.z); d.rotation.set(-Math.PI / 2, 0, 0); d.scale.setScalar(1.3); d.updateMatrix();
+      this.skyBolts.setMatrixAt(fallen, d.matrix); this.skyTrails.setMatrixAt(fallen, d.matrix);
+      this.skyBolts.setColorAt(fallen, this.colors.playerHit); this.skyTrails.setColorAt(fallen++, this.colors.player);
+    }
+    flush(this.skyBolts, fallen); flush(this.skyTrails, fallen);
+    let beams = 0;
+    for (const s of this.strikes) {
+      if ((s.life -= dt) <= 0) continue;
+      const k = s.life / 0.4;
+      d.position.set(s.x + (Math.random() - 0.5) * 0.3, 0, -s.z); d.rotation.set(0, 0, (Math.random() - 0.5) * 0.08); d.scale.set(k * (1 + Math.random()), 1, k); d.updateMatrix();
+      this.beams.setMatrixAt(beams, d.matrix); this.beams.setColorAt(beams++, this.color.setRGB(0.85 + k * 0.15, 0.9, 1));
+    }
+    flush(this.beams, beams);
     // Telegraph: ring at full radius, inner fill grows with the wind-up.
     const attacker = enemies.find(unit => unit.alive && unit.telegraph);
     for (const mesh of [this.ring, this.disc, this.fill]) mesh.visible = !!attacker;
@@ -146,7 +175,8 @@ export class ArcadeEffects {
   takeShake() { const s = this.shake; this.shake = 0; return s; }
   clear() {
     this.pool.clear(true);
-    for (const mesh of [this.bolts, this.trails, this.halos, this.muzzles, this.flashes, this.sparks, this.puffs]) flush(mesh, 0);
+    for (const mesh of [this.bolts, this.trails, this.halos, this.muzzles, this.flashes, this.sparks, this.puffs, this.skyBolts, this.skyTrails, this.beams]) flush(mesh, 0);
+    this.falling.length = 0; this.strikes.length = 0;
     for (const mesh of [this.ring, this.disc, this.fill]) mesh.visible = false;
   }
 }

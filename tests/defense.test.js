@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { DefenseSimulation, GATE_CHARGE } from '../src/core/DefenseSimulation.js';
-import { Progress } from '../src/core/Progress.js';
+import { DefenseSimulation, GATE_CHARGE, ENERGY_MAX, POWER_TIME } from '../src/core/DefenseSimulation.js';
+import { Progress, starsFor } from '../src/core/Progress.js';
 import { DEFENSE_STAGES, SPAWN_Z } from '../src/data/defenseStages.js';
 import { play } from '../tools/balance-defense.mjs';
 import { CharacterVisualFactory } from '../src/rendering/CharacterVisualFactory.js';
@@ -68,7 +68,7 @@ test('coins, upgrades and unlocked stages persist through storage', () => {
   progress.earn(300); assert.equal(progress.buy('damage'), true); assert.equal(progress.levels.damage, 1);
   progress.complete(1, 3);
   const again = new Progress(storage);
-  assert.equal(again.coins, 300 - 80); assert.equal(again.levels.damage, 1); assert.equal(again.data.unlocked, 2); assert.equal(again.data.stage, 2);
+  assert.equal(again.coins, 300 - 80 + 40, 'first clear pays one star bonus'); assert.equal(again.levels.damage, 1); assert.equal(again.data.unlocked, 2); assert.equal(again.data.stage, 2);
   const broken = new Progress({ getItem: () => '{bad json', setItem() { throw new Error('full'); } });
   assert.equal(broken.coins, 0); broken.earn(5); assert.equal(broken.coins, 5);
 });
@@ -86,4 +86,45 @@ test('every stage has its own visual theme', async () => {
   const { THEMES, STAGE_THEME } = await import('../src/rendering/StageThemes.js');
   assert.equal(new Set(STAGE_THEME.slice(0, DEFENSE_STAGES.length)).size, DEFENSE_STAGES.length);
   for (const name of STAGE_THEME) for (const key of ['sky', 'fog', 'hemi', 'sun', 'paving', 'ground', 'stone', 'fort', 'scatter']) assert.ok(THEMES[name][key] !== undefined, `${name}.${key}`);
+});
+
+test('power barrels: freeze slows walkers, shield blocks losses, lightning strikes, chests pay coins', () => {
+  const walk = freeze => {
+    const sim = new DefenseSimulation({}, stage([{ t: 0, type: 'horde', count: 1, x: 0 }], { gruntHp: 1e6 })); sim.start(); sim.update(1 / 60);
+    if (freeze) sim.apply({ type: 'power', value: 'freeze' });
+    const z = sim.enemies[0].z; run(sim, 2, 0); return z - sim.enemies[0].z;
+  };
+  assert.ok(walk(true) < walk(false) * 0.4);
+  const shielded = new DefenseSimulation({}, stage([{ t: 0, type: 'horde', count: 3, x: 0, brutes: 3 }], { bruteHp: 1e6 }));
+  shielded.start(); shielded.update(1 / 60); shielded.powers.shield = 1e3; run(shielded, 30, 0);
+  assert.equal(shielded.army.count, 10); assert.equal(shielded.kills, 3);
+  const zap = new DefenseSimulation({}, stage([{ t: 0, type: 'horde', count: 20, x: 0 }])); zap.start(); zap.update(1 / 60);
+  zap.apply({ type: 'power', value: 'lightning' }); assert.equal(zap.kills, 14);
+  const rich = new DefenseSimulation({}, stage([], { coinScale: 2 })); rich.apply({ type: 'coins', value: 50 }); assert.equal(rich.coins, 100);
+  assert.equal(POWER_TIME.fire > 0, true);
+});
+
+test('arrow rain needs full energy, then hits everything in front after its flight', () => {
+  const sim = new DefenseSimulation({}, stage([{ t: 0, type: 'horde', count: 30, x: 0, width: 10 }], { gruntHp: 1e3, bruteHp: 2000 }));
+  sim.start(); sim.update(1 / 60);
+  assert.equal(sim.useRain(), false);
+  sim.energy = ENERGY_MAX; for (const u of sim.enemies) u.z = 12;
+  assert.equal(sim.useRain(), true); assert.equal(sim.energy, 0);
+  const before = sim.enemies.reduce((sum, u) => sum + u.health, 0);
+  for (let i = 0; i < 40; i++) sim.update(1 / 60);
+  assert.ok(sim.enemies.reduce((sum, u) => sum + u.health, 0) < before - 29 * 1000);
+});
+
+test('kill combos pay milestone bonuses; stars and daily gifts are saved', () => {
+  const combos = [], sim = new DefenseSimulation({ onCombo: (n, bonus) => combos.push([n, bonus]) }, stage([]));
+  for (let i = 0; i < 25; i++) sim.registerKill({ type: 'enemyGrunt' });
+  assert.deepEqual(combos, [[10, 5], [25, 13]]);
+  assert.equal(starsFor(10, 10), 3); assert.equal(starsFor(5, 10), 2); assert.equal(starsFor(1, 10), 1);
+  const store = new Map(), storage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
+  const progress = new Progress(storage);
+  assert.equal(progress.complete(2, 7, 2).bonus, 2 * 40 * 2);
+  assert.equal(progress.complete(2, 7, 3).bonus, 40 * 2); assert.equal(progress.complete(2, 7, 1).bonus, 0);
+  const first = progress.claimDaily('2026-09-28'); assert.ok(first > 0); assert.equal(progress.claimDaily('2026-09-28'), 0);
+  const second = progress.claimDaily('2026-09-29'); assert.ok(second > first); assert.equal(progress.data.streak, 2);
+  const again = new Progress(storage); assert.equal(again.stars(2), 3); assert.equal(again.dailyAvailable('2026-09-29'), false);
 });

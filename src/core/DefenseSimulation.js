@@ -19,6 +19,11 @@ export const GATE_CHARGE = 20;
 export const DEFENSE_RANGE = 17;
 export const COIN_VALUE = { enemyGrunt: 1, enemyBrute: 4, desertBeast: 60, giantBoss: 150 };
 const BREACH = { enemyGrunt: 1, enemyBrute: 3 };
+// Arrow-rain energy per kill; the ability is ready at ENERGY_MAX.
+export const ENERGY_MAX = 100;
+const ENERGY = { enemyGrunt: 1, enemyBrute: 4, desertBeast: 25, giantBoss: 40 };
+export const POWER_TIME = { freeze: 5, fire: 8, shield: 7 };
+export const COMBO_STEPS = [10, 25, 50, 100, 150, 200, 300];
 
 // Gate panels and barrels are shootable props that share the projectile/damage path.
 class GatePanel {
@@ -64,6 +69,7 @@ export class DefenseSimulation {
     for (const unit of this.army.units) this.army.applyWeapon(unit);
     this.base = { hp: stage.baseHp + this.perks.fort, maxHp: stage.baseHp + this.perks.fort };
     this.peakArmy = this.army.count;
+    this.energy = 0; this.rain = null; this.powers = { freeze: 0, fire: 0, shield: 0 }; this.combo = { count: 0, timer: 0, best: 0 };
     this.enemies = []; this.gates = []; this.barrels = []; this.props = []; this.targetables = []; this.archers = [];
     this.movement = new MovementSystem(); this.targets = new TargetSystem(); this.enemyAI = new EnemySystem((unit, died) => this.hit(unit, died));
     this.projectiles = new ProjectileSystem((unit, died) => this.hit(unit, died));
@@ -74,8 +80,30 @@ export class DefenseSimulation {
   get enemyCount() { return this.enemies.length; }
   start() { if (this.state === 'ready') this.state = 'playing'; }
   coinValue(unit) { return Math.round((COIN_VALUE[unit.type] || 0) * (this.data.coinScale || 1)); }
+  // Every enemy kill: coins, ability energy and the combo chain.
+  registerKill(unit) {
+    this.kills++; this.coins += this.coinValue(unit);
+    this.energy = Math.min(ENERGY_MAX, this.energy + (ENERGY[unit.type] || 1));
+    const combo = this.combo; combo.count++; combo.timer = 1.6; combo.best = Math.max(combo.best, combo.count);
+    if (COMBO_STEPS.includes(combo.count)) {
+      const bonus = Math.round(combo.count * 0.5 * (this.data.coinScale || 1));
+      this.coins += bonus; this.callbacks.onCombo?.(combo.count, bonus);
+    }
+  }
+  // Arrow rain: after a short flight, heavy damage to everything in front of the army.
+  useRain() {
+    if (this.state !== 'playing' || this.energy < ENERGY_MAX || this.rain) return false;
+    this.energy = 0; this.rain = { x: this.army.center.x, timer: 0.55 };
+    this.callbacks.onRain?.(this.rain.x); return true;
+  }
+  strike(unit, damage) { if (unit.alive) this.hit(unit, unit.takeDamage(damage)); }
+  lightning() {
+    const targets = this.enemies.filter(u => u.alive).sort((a, b) => (b.aiState ? 1e3 : b.type === 'enemyBrute' ? 50 : 0) - (a.aiState ? 1e3 : a.type === 'enemyBrute' ? 50 : 0) || a.z - b.z).slice(0, 14);
+    this.callbacks.onLightning?.(targets.map(u => ({ x: u.x, z: u.z })));
+    for (const unit of targets) this.strike(unit, unit.aiState ? unit.maxHealth * 0.08 : this.data.bruteHp * 1.2);
+  }
   hit(unit, died) {
-    if (died && unit.team === 'enemy' && !unit.isProp) { this.kills++; this.coins += this.coinValue(unit); }
+    if (died && unit.team === 'enemy' && !unit.isProp) this.registerKill(unit);
     this.callbacks.onHit?.(unit, died);
   }
   spawn(event) {
@@ -126,13 +154,21 @@ export class DefenseSimulation {
     this.movement.update(army, dt, false);
     // The line never advances: keep the front at z = 0.
     army.center.z = 0;
-    this.updateGates(dt); this.updateBarrels(dt); this.updateEnemies(dt);
+    for (const key in this.powers) this.powers[key] = Math.max(0, this.powers[key] - dt);
+    if (this.combo.timer > 0 && (this.combo.timer -= dt) <= 0) this.combo.count = 0;
+    if (this.rain && (this.rain.timer -= dt) <= 0) {
+      const x = this.rain.x; this.rain = null;
+      for (const unit of this.enemies) if (unit.alive && unit.z < 26 && Math.abs(unit.x - x) < 6.8) this.strike(unit, unit.aiState ? unit.maxHealth * 0.06 : this.data.bruteHp * 0.7);
+      this.callbacks.onRainImpact?.(x);
+    }
+    const slow = this.powers.freeze > 0 ? 0.3 : 1;
+    this.updateGates(dt); this.updateBarrels(dt); this.updateEnemies(dt * slow);
     // Soldiers shoot enemies first; with nothing in range they shoot barrels and growing gates.
     this.targets.update(dt, army.units, this.enemies);
     this.shoot(dt);
     this.archers.length = 0;
     for (const unit of this.enemies) if (unit.archer && unit.alive) this.archers.push(unit);
-    if (this.archers.length) this.combat.shoot(dt, this.archers);
+    if (this.archers.length) this.combat.shoot(dt * slow, this.archers);
     this.projectiles.update(dt);
     for (const barrel of this.barrels) if (!barrel.alive && !barrel.claimed) this.claim(barrel);
     this.prune();
@@ -151,6 +187,8 @@ export class DefenseSimulation {
       if (unit.shotTimer > 0) continue;
       const target = this.targets.select(unit) || this.propTarget(unit);
       if (target && this.projectiles.fire(unit, target)) {
+        // Fire arrows: double damage while the power lasts.
+        if (this.powers.fire > 0) { const bolt = this.projectiles.pool.active[this.projectiles.pool.active.length - 1]; bolt.damage *= 2; bolt.fire = true; }
         unit.shotTimer = 1 / unit.fireRate; unit.shotFlash = 0.1; unit.state = 'shoot';
         unit.aimAngle = Math.atan2(unit.x - target.x, target.z - unit.z);
       } else unit.shotTimer = 0.08;
@@ -187,7 +225,9 @@ export class DefenseSimulation {
   }
   claim(barrel) { barrel.claimed = true; const before = this.army.count; this.apply(barrel.reward); this.callbacks.onBarrel?.(barrel, this.army.count - before); }
   apply(choice) {
-    if (choice.type === 'army_add' && choice.value < 0) this.removeSoldiers(-choice.value);
+    if (choice.type === 'coins') this.coins += Math.round(choice.value * (this.data.coinScale || 1));
+    else if (choice.type === 'power') { if (choice.value === 'lightning') this.lightning(); else this.powers[choice.value] = POWER_TIME[choice.value]; }
+    else if (choice.type === 'army_add' && choice.value < 0) this.removeSoldiers(-choice.value);
     else this.army.upgrade(choice.type, choice.value);
   }
   removeSoldiers(count) {
@@ -211,14 +251,16 @@ export class DefenseSimulation {
       else if (unit.z < rear) {
         // Slipped past the army: it reaches the castle.
         unit.alive = false; this.leaks++;
-        this.base.hp = Math.max(0, this.base.hp - (BREACH[unit.type] || 1));
+        // The shield power keeps the castle safe.
+        if (!this.powers.shield) this.base.hp = Math.max(0, this.base.hp - (BREACH[unit.type] || 1));
         this.callbacks.onBreach?.(unit);
       }
     }
   }
   // Mob-control trade: a walker that reaches the line dies and takes soldiers with it.
   contact(enemy) {
-    let trade = CHARACTERS[enemy.type].trade || 1;
+    // Under the shield power the line holds without losses.
+    let trade = this.powers.shield > 0 ? 0 : CHARACTERS[enemy.type].trade || 1;
     while (trade-- > 0) {
       let best = null, bestD = Infinity;
       for (const unit of this.army.units) {
@@ -230,7 +272,7 @@ export class DefenseSimulation {
       best.health = 0; best.alive = false; best.state = 'death';
       this.callbacks.onHit?.(best, true);
     }
-    enemy.health = 0; enemy.alive = false; this.kills++; this.coins += this.coinValue(enemy);
+    enemy.health = 0; enemy.alive = false; this.registerKill(enemy);
     this.callbacks.onClash?.(enemy, CHARACTERS[enemy.type].trade || 1);
     this.callbacks.onHit?.(enemy, true);
   }

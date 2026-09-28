@@ -3,21 +3,21 @@ import { RELEASE } from './release.js';
 import { GameLoop } from './GameLoop.js';
 import { PerformanceManager } from './PerformanceManager.js';
 import { DefenseSimulation } from './DefenseSimulation.js';
-import { Progress } from './Progress.js';
+import { Progress, starsFor } from './Progress.js';
 import { InputSystem } from '../systems/InputSystem.js';
 import { CharacterVisualFactory } from '../rendering/CharacterVisualFactory.js';
 import { ChibiFactory } from '../rendering/ChibiFactory.js';
 import { ThemedEnvironment, THEMES, STAGE_THEME } from '../rendering/StageThemes.js';
 import { ArcadeEffects } from '../rendering/ArcadeEffects.js';
 import { ArcadeCameraRig } from '../rendering/ArcadeCameraRig.js';
-import { DefenseProps, choiceLabel } from '../rendering/DefenseProps.js';
+import { DefenseProps, choiceLabel, POWER_LABELS } from '../rendering/DefenseProps.js';
 import { WorldLabels } from '../rendering/WorldLabels.js';
 import { ARCADE_CHARACTERS } from '../rendering/VisualProfiles.js';
 import { DEFENSE_STAGES } from '../data/defenseStages.js';
 import { UPGRADES } from '../data/upgrades.js';
 import { clamp } from './Config.js';
 import { GameAudio } from './Audio.js';
-import { COIN_VALUE } from './DefenseSimulation.js';
+import { COIN_VALUE, ENERGY_MAX } from './DefenseSimulation.js';
 
 const ICONS = { soldiers: '🛡️', damage: '🏹', fireRate: '⚡', fort: '🏰' };
 const AR_DIGITS = ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -29,7 +29,7 @@ export class DefenseGame {
     const $ = id => document.getElementById(id);
     this.ui = Object.fromEntries(['game', 'scene', 'hud', 'start', 'result', 'result-title', 'result-note', 'result-coins', 'army-count', 'progress', 'pause', 'paused', 'replay', 'gate-feedback', 'debug',
       'army-tag', 'giant-tag', 'horde-tag', 'base-meter', 'base-hp', 'stage-label', 'defense-menu', 'menu-coins', 'stage-picker', 'open-upgrades', 'upgrades', 'upgrade-coins', 'upgrade-list',
-      'close-upgrades', 'result-upgrades', 'next-stage', 'breach-flash', 'barrel-tags', 'load-status', 'load-line', 'float-layer', 'banner', 'confetti', 'lightning', 'sound', 'menu-sound'].map(id => [id, $(id)]));
+      'close-upgrades', 'result-upgrades', 'next-stage', 'breach-flash', 'barrel-tags', 'load-status', 'load-line', 'float-layer', 'banner', 'confetti', 'lightning', 'sound', 'menu-sound', 'frost', 'powers', 'combo', 'rain-btn', 'result-stars', 'daily-gift'].map(id => [id, $(id)]));
     this.debug = new URLSearchParams(location.search).get('debug') === '1';
     this.ui.debug.hidden = !this.debug;
     document.body.classList.add('arcade', 'defense');
@@ -59,6 +59,10 @@ export class DefenseGame {
     // Glowing command ring under the commander.
     this.commandRing = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.75, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ffd24a', transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
     this.commandRing.renderOrder = 1; this.scene.add(this.commandRing);
+    // Shield power: a glowing dome over the army.
+    this.shieldDome = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#6ff0ff', transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false }));
+    this.shieldDome.visible = false; this.scene.add(this.shieldDome);
+    this.freezeTint = new THREE.Color(0.55, 0.8, 1.35);
 
     this.sim = new DefenseSimulation({
       onHit: (unit, died) => {
@@ -69,9 +73,13 @@ export class DefenseGame {
         if (died && unit.team === 'enemy' && COIN_VALUE[unit.type] >= 4 && (unit.aiState || this.sceneTime - (this.lastCoinPop || -1) > 0.3)) { this.lastCoinPop = this.sceneTime; this.floatText(`+${this.sim.coinValue(unit)}`, unit.x, unit.aiState ? 3 : 1.6, unit.z, 'coin'); this.audio.coin(); }
       },
       onSpawn: event => this.announce(event),
+      onRain: x => { this.effects.rain(x); this.audio.rainStart(); },
+      onRainImpact: () => { this.cameraRig.kick(0.6); this.audio.rainImpact(); },
+      onLightning: points => { this.effects.lightning(points); this.audio.thunder(true); },
+      onCombo: (count, bonus) => this.showCombo(count, bonus),
       onClash: (enemy, trade) => { this.effects.clash(enemy.x, Math.max(0.2, enemy.z), trade > 1); this.audio.clash(trade > 1); },
       onGate: (row, choice, added) => this.gateSound(added, choice) || this.feedback(choice.type.startsWith('army') ? (added >= 0 ? `+${added}` : `${added}`) : choiceLabel(choice), added < 0),
-      onBarrel: (barrel, added) => this.feedback(barrel.reward.type === 'army_add' ? `+${added}` : choiceLabel(barrel.reward)),
+      onBarrel: (barrel, added) => { const r = barrel.reward; this.feedback(r.type === 'army_add' ? `+${added}` : r.type === 'coins' ? `💰 +${Math.round(r.value * (this.stage.coinScale || 1))}` : choiceLabel(r)); if (r.type === 'power' || r.type === 'coins') this.audio.power(r.value); },
       onBreach: () => { this.breach(); this.audio.breach(); },
       onFinish: state => this.finish(state),
     }, this.stage, this.progress.levels);
@@ -84,6 +92,8 @@ export class DefenseGame {
     }, () => this.sim.army.targetX);
     const click = (id, handler) => this.ui[id].addEventListener('click', event => { event.stopPropagation(); handler(); });
     click('pause', () => this.pause());
+    click('rain-btn', () => this.sim.useRain());
+    click('daily-gift', () => this.claimDaily());
     for (const id of ['sound', 'menu-sound']) click(id, () => { this.audio.toggle(); this.syncSound(); });
     this.syncSound();
     click('replay', () => this.restart(this.stageId));
@@ -126,7 +136,7 @@ export class DefenseGame {
   startOrResume() {
     if (!this.ui.upgrades.hidden) return;
     this.audio.unlock();
-    if (this.sim.state === 'ready' && !this.ui.start.hidden) { this.sim.start(); this.ui.start.hidden = true; this.ui.hud.hidden = false; this.ui['base-meter'].hidden = false; this.banner(`المرحلة ${AR_DIGITS[this.stageId - 1]}`, this.stage.name, 'stage'); }
+    if (this.sim.state === 'ready' && !this.ui.start.hidden) { this.sim.start(); this.ui.start.hidden = true; this.ui.hud.hidden = false; this.ui['base-meter'].hidden = false; this.ui['rain-btn'].hidden = false; this.banner(`المرحلة ${AR_DIGITS[this.stageId - 1]}`, this.stage.name, 'stage'); }
     else if (this.sim.state === 'paused') { this.sim.state = 'playing'; this.ui.paused.hidden = true; this.loop.resetClock(); this.audio.setMode('battle'); }
   }
   pause() { if (this.sim.state === 'playing') { this.sim.state = 'paused'; this.ui.paused.hidden = false; this.input.reset(); this.audio.setMode('paused'); } }
@@ -141,7 +151,7 @@ export class DefenseGame {
     this.cameraRig.reset(this.sim.army.depth); this.lastCount = -1; this.lastBase = -1;
     this.ui.result.hidden = true; this.ui.paused.hidden = true; this.ui['gate-feedback'].classList.remove('show');
     this.renderMenu();
-    this.giantDamage.clear(); this.archerWarned = false; this.lastShots = 0; this.audio.setMode('menu', 0); for (const f of this.floats) f.el.hidden = true; this.ui.confetti.textContent = '';
+    this.giantDamage.clear(); this.ui['rain-btn'].hidden = true; this.ui.frost.classList.remove('on'); this.ui.powers.textContent = ''; this.lastPowers = ''; this.archerWarned = false; this.lastShots = 0; this.audio.setMode('menu', 0); for (const f of this.floats) f.el.hidden = true; this.ui.confetti.textContent = '';
     if (autoStart) { this.ui.start.hidden = false; this.startOrResume(); } else { this.ui.start.hidden = false; this.ui.hud.hidden = true; }
     this.loop.resetClock();
   }
@@ -151,11 +161,13 @@ export class DefenseGame {
       const button = document.createElement('button'); button.type = 'button';
       const locked = stage.id > this.progress.data.unlocked;
       button.textContent = locked ? '🔒' : String(stage.id); button.disabled = locked;
+      if (!locked) { const stars = document.createElement('small'); stars.textContent = '★'.repeat(this.progress.stars(stage.id)) || '·'; button.append(stars); }
       button.setAttribute('aria-pressed', String(stage.id === this.stageId)); button.setAttribute('aria-label', `المرحلة ${stage.id}: ${stage.name}${locked ? ' (مقفلة)' : ''}`);
       button.addEventListener('click', event => { event.stopPropagation(); this.restart(stage.id, false); });
       picker.append(button);
     });
     this.ui['menu-coins'].textContent = this.progress.coins;
+    this.ui['daily-gift'].hidden = !this.progress.dailyAvailable(this.today());
     this.ui["stage-label"].textContent = `المرحلة ${AR_DIGITS[this.stageId - 1]}`;
   }
   openUpgrades() { this.ui.upgrades.hidden = false; this.renderUpgrades(); this.ui['close-upgrades'].focus({ preventScroll: true }); }
@@ -192,15 +204,18 @@ export class DefenseGame {
     const meter = this.ui['base-meter']; meter.classList.remove('hurt'); void meter.offsetWidth; meter.classList.add('hurt');
   }
   finish(state) {
-    const victory = state === 'victory', earned = this.sim.coins;
-    this.progress.earn(earned);
-    if (victory) this.progress.complete(this.stageId, DEFENSE_STAGES.length);
+    const victory = state === 'victory', stars = victory ? starsFor(this.sim.base.hp, this.sim.base.maxHp) : 0;
+    this.progress.earn(this.sim.coins);
+    const starBonus = victory ? this.progress.complete(this.stageId, DEFENSE_STAGES.length, stars).bonus : 0, earned = this.sim.coins + starBonus;
+    this.ui['rain-btn'].hidden = true; this.ui.frost.classList.remove('on'); this.ui.powers.textContent = '';
+    const starBox = this.ui['result-stars']; starBox.hidden = !victory; starBox.innerHTML = [1, 2, 3].map(n => `<i class="${n <= stars ? 'on' : ''}">★</i>`).join('');
     this.input.reset(); this.labels.hide(); for (const tag of this.barrelTags) tag.hidden = true;
     this.ui.hud.hidden = true; this.ui.result.hidden = false; this.ui.result.classList.toggle('defeat', !victory);
     const last = this.stageId === DEFENSE_STAGES.length;
     this.ui['result-title'].textContent = victory ? (last ? 'سقط الحصن!' : 'انتصار') : this.sim.base.hp <= 0 ? 'سقطت القلعة' : 'هُزم الجيش';
     this.ui['result-note'].textContent = victory ? `${this.stage.name} · بقي ${this.sim.army.count} جنديًا` : 'طوّر جيشك ثم حاول مجددًا';
     this.ui['result-coins'].hidden = false; this.ui['result-coins'].querySelector('b').textContent = `+${earned}`;
+    if (victory && this.sim.combo.best >= 10) this.ui['result-note'].textContent += ` · أفضل كومبو ×${this.sim.combo.best}`;
     this.ui['next-stage'].hidden = !victory || last;
     this.ui['result-upgrades'].hidden = false;
     this.ui.replay.textContent = victory ? 'إعادة' : 'حاول مجددًا';
@@ -255,6 +270,17 @@ export class DefenseGame {
       box.append(piece);
     }
   }
+  showCombo(count, bonus) {
+    const el = this.ui.combo; el.innerHTML = `<b>×${count}</b><small>كومبو! +${bonus} 🪙</small>`;
+    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); this.audio.combo(count);
+  }
+  today() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+  claimDaily() {
+    const amount = this.progress.claimDaily(this.today()); if (!amount) return;
+    this.audio.unlock(); this.audio.power('coins');
+    this.banner(`🎁 +${amount}`, `هدية اليوم · سلسلة ${this.progress.data.streak} ${this.progress.data.streak > 1 ? 'أيام' : 'يوم'}`, 'wave');
+    this.confetti(); this.renderMenu();
+  }
   barrelTag(i) {
     if (!this.barrelTags[i]) {
       const el = document.createElement('div'); el.className = 'world-tag'; el.hidden = true; el.innerHTML = '<b></b><small></small>';
@@ -298,6 +324,16 @@ export class DefenseGame {
       if (this.sim.enemies.some(u => u.archer && u.shotFlash > 0.09)) this.audio.enemyArrow();
       this.audio.setMode('battle', this.sim.enemies.some(u => u.aiState && u.alive) ? 2 : 1);
     }
+    // Powers: frozen enemies turn icy, the shield dome covers the army.
+    const powers = this.sim.powers;
+    this.visuals.enemyTint = powers.freeze > 0 ? this.freezeTint : null;
+    this.ui.frost.classList.toggle('on', powers.freeze > 0);
+    this.shieldDome.visible = powers.shield > 0;
+    if (this.shieldDome.visible) {
+      this.shieldDome.position.set(army.center.x, 0, army.depth / 2 - 0.2);
+      this.shieldDome.scale.set(army.halfWidth + 1.2, 2.4 + Math.sin(this.sceneTime * 6) * 0.1, army.depth / 2 + 1.4);
+      this.shieldDome.material.opacity = 0.14 + Math.min(1, powers.shield) * 0.08;
+    }
     const leader = army.units.find(u => u.type === 'commander');
     this.commandRing.visible = !!leader;
     if (leader) { this.commandRing.position.set(leader.x, 0.05, -leader.z); this.commandRing.rotation.y += animDt; this.commandRing.scale.setScalar(1.6 + Math.sin(this.sceneTime * 4) * 0.12); }
@@ -320,6 +356,10 @@ export class DefenseGame {
     if (army.count !== this.lastCount) { this.ui['army-count'].textContent = army.count; this.lastCount = army.count; }
     if (base.hp !== this.lastBase) { this.ui['base-hp'].textContent = base.hp; this.lastBase = base.hp; }
     this.ui.progress.style.transform = `scaleX(${this.sim.progress.toFixed(3)})`;
+    const charge = this.sim.energy / ENERGY_MAX, rain = this.ui['rain-btn'];
+    rain.style.setProperty('--charge', charge.toFixed(3)); rain.classList.toggle('ready', charge >= 1 && !this.sim.rain);
+    const chips = Object.entries(this.sim.powers).filter(([, t]) => t > 0).map(([k, t]) => `${POWER_LABELS[k]} ${Math.ceil(t)}`).join('|');
+    if (chips !== this.lastPowers) { this.lastPowers = chips; this.ui.powers.innerHTML = chips ? chips.split('|').map(c => `<span>${c}</span>`).join('') : ''; }
     if (this.debug) this.ui.debug.textContent = [
       `Build ${RELEASE || 'dev'} · defence stage ${this.stageId}`,
       `FPS ${Math.round(this.performance.fps)} · DPR ${this.performance.dpr.toFixed(2)} · p95 ${this.performance.p95.toFixed(1)}ms`,
