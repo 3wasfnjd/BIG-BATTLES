@@ -47,7 +47,7 @@ function flush(mesh, count) {
 export class ArcadeEffects {
   constructor(scene) {
     this.dummy = new THREE.Object3D(); this.color = new THREE.Color();
-    this.colors = { halo: new THREE.Color('#ffcf4a').multiplyScalar(0.55), player: new THREE.Color('#ffa414'), enemy: new THREE.Color('#ff4b3a'), playerHit: new THREE.Color('#fff2b0'), enemyHit: new THREE.Color('#ff8a4a'), death: new THREE.Color('#ff5f45'), playerDeath: new THREE.Color('#7dffb0') };
+    this.colors = { clash: new THREE.Color('#fff6c8'), halo: new THREE.Color('#ffcf4a').multiplyScalar(0.55), player: new THREE.Color('#ffa414'), enemy: new THREE.Color('#ff4b3a'), playerHit: new THREE.Color('#fff2b0'), enemyHit: new THREE.Color('#ff8a4a'), death: new THREE.Color('#ff5f45'), playerDeath: new THREE.Color('#7dffb0') };
     const glow = glowTexture(), star = starTexture(), trail = trailTexture();
     const flat = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
     // Solid bolt body (shaft + head) and an additive tracer per projectile.
@@ -73,12 +73,22 @@ export class ArcadeEffects {
   hit(unit, died) {
     const effect = this.pool.acquire(); if (!effect) return;
     const big = unit.type === 'giantBoss' || unit.type === 'desertBeast' || (died && unit.type === 'barrel');
-    Object.assign(effect, { x: unit.x + (Math.random() - 0.5) * (big ? 1.2 : 0.2), z: unit.z, y: big ? 1 + Math.random() * 1.6 : 0.55, life: died ? 0.42 : 0.2, maxLife: died ? 0.42 : 0.2, team: unit.team, died, big, prop: !!unit.isProp });
+    Object.assign(effect, { x: unit.x + (Math.random() - 0.5) * (big ? 1.2 : 0.2), z: unit.z, y: big ? 1 + Math.random() * 1.6 : 0.55, life: died ? 0.42 : 0.2, maxLife: died ? 0.42 : 0.2, team: unit.team, died, big, prop: !!unit.isProp, clash: false });
     for (const spark of effect.sparks) {
       const a = Math.random() * Math.PI * 2, speed = (died ? 4.5 : 3) * (0.5 + Math.random());
       spark.vx = Math.cos(a) * speed; spark.vz = Math.sin(a) * speed; spark.vy = 1.5 + Math.random() * 2.5;
     }
     if (died && big) this.shake = 1;
+  }
+  // Melee clash where a walker hits the line: a white-gold burst with fast metal sparks.
+  clash(x, z, big = false) {
+    const effect = this.pool.acquire(); if (!effect) return;
+    Object.assign(effect, { x, z, y: 0.75, life: 0.34, maxLife: 0.34, team: 'clash', died: false, big, prop: false, clash: true });
+    for (const spark of effect.sparks) {
+      const a = Math.random() * Math.PI * 2, speed = (big ? 8 : 6) * (0.6 + Math.random() * 0.6);
+      spark.vx = Math.cos(a) * speed; spark.vz = Math.sin(a) * speed; spark.vy = 3 + Math.random() * 3;
+    }
+    if (big) this.shake = Math.max(this.shake, 0.35);
   }
   update(projectiles, army, enemies, dt, time, camera) {
     const d = this.dummy;
@@ -107,9 +117,9 @@ export class ArcadeEffects {
     let flashes = 0, sparks = 0, puffs = 0;
     for (const e of this.pool.active) {
       const k = e.life / e.maxLife, age = e.maxLife - e.life;
-      const color = e.died ? (e.team === 'enemy' ? this.colors.death : this.colors.playerDeath) : e.team === 'enemy' ? this.colors.playerHit : this.colors.enemyHit;
+      const color = e.clash ? this.colors.clash : e.died ? (e.team === 'enemy' ? this.colors.death : this.colors.playerDeath) : e.team === 'enemy' ? this.colors.playerHit : this.colors.enemyHit;
       d.position.set(e.x, e.y, -e.z); d.rotation.set(0, e.x * 7 + age * 6, 0);
-      d.scale.setScalar((e.died ? 2.2 : e.big ? 1.6 : 1.1) * (0.4 + (1 - k) * 0.9) * (0.4 + k * 0.6)); d.updateMatrix();
+      d.scale.setScalar((e.clash ? (e.big ? 3.4 : 2.4) : e.died ? 2.2 : e.big ? 1.6 : 1.1) * (0.4 + (1 - k) * 0.9) * (0.4 + k * 0.6)); d.updateMatrix();
       this.flashes.setMatrixAt(flashes, d.matrix); this.flashes.setColorAt(flashes++, color);
       if (e.died) {
         d.position.set(e.x, 0.05, -e.z); d.rotation.set(0, 0, 0); d.scale.setScalar((e.big ? 3.2 : 0.9) * (0.3 + (1 - k) * 1.1)); d.updateMatrix();

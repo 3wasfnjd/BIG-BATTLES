@@ -28,9 +28,10 @@ export function play(stage, levels = {}, policy = botTarget) {
   return sim;
 }
 if (import.meta.url === `file://${process.argv[1]}`) {
-  for (const stage of DEFENSE_STAGES) {
+  const only = process.argv[3] ? process.argv[3].split(',').map(Number) : null;
+  for (const stage of DEFENSE_STAGES.filter(s => !only || only.includes(s.id))) {
     const rows = [];
-    for (const level of [0, 1, 2, 3, 4, 6, 8, 10, 12]) {
+    for (const level of process.argv[2] ? process.argv[2].split(',').map(Number) : [0, 1, 2, 3, 4, 6, 8, 9, 10, 11, 12]) {
       const sim = play(stage, { soldiers: level, damage: level, fireRate: level, fort: level });
       rows.push(`L${level}:${sim.state === 'victory' ? 'WIN' : 'lose'} t=${sim.time.toFixed(0)} army=${sim.army.count}/${sim.peakArmy} base=${sim.base.hp}/${sim.base.maxHp} coins=${sim.coins} leaks=${sim.leaks}`);
     }

@@ -64,7 +64,7 @@ export class DefenseSimulation {
     for (const unit of this.army.units) this.army.applyWeapon(unit);
     this.base = { hp: stage.baseHp + this.perks.fort, maxHp: stage.baseHp + this.perks.fort };
     this.peakArmy = this.army.count;
-    this.enemies = []; this.gates = []; this.barrels = []; this.props = []; this.targetables = [];
+    this.enemies = []; this.gates = []; this.barrels = []; this.props = []; this.targetables = []; this.archers = [];
     this.movement = new MovementSystem(); this.targets = new TargetSystem(); this.enemyAI = new EnemySystem((unit, died) => this.hit(unit, died));
     this.projectiles = new ProjectileSystem((unit, died) => this.hit(unit, died));
     this.combat = new CombatSystem(this.targets, this.projectiles);
@@ -73,8 +73,9 @@ export class DefenseSimulation {
   get progress() { return Math.min(1, this.time / (this.lastEventTime + 8)); }
   get enemyCount() { return this.enemies.length; }
   start() { if (this.state === 'ready') this.state = 'playing'; }
+  coinValue(unit) { return Math.round((COIN_VALUE[unit.type] || 0) * (this.data.coinScale || 1)); }
   hit(unit, died) {
-    if (died && unit.team === 'enemy' && !unit.isProp) { this.kills++; this.coins += COIN_VALUE[unit.type] || 0; }
+    if (died && unit.team === 'enemy' && !unit.isProp) { this.kills++; this.coins += this.coinValue(unit); }
     this.callbacks.onHit?.(unit, died);
   }
   spawn(event) {
@@ -109,6 +110,11 @@ export class DefenseSimulation {
       unit.walkSpeed = (type === 'enemyBrute' ? Math.min(speed, CHARACTERS.enemyBrute.speed + 0.3) : speed) * PACE.speed * (0.95 + ((i * 13) % 10) * 0.01);
       unit.state = 'run'; unit.moving = true; unit.aimAngle = Math.PI; unit.projectileSpeed = 0;
       unit.maxHealth = unit.health = type === 'enemyBrute' ? this.data.bruteHp : this.data.gruntHp;
+      // Archers walk to a firing line and rain arrows on the army instead of charging.
+      if (type === 'enemyGrunt' && i < brutes + (event.archers || 0)) {
+        Object.assign(unit, { archer: true, projectileSpeed: 24, range: this.data.archerRange || 13, damage: this.data.archerDamage || 8, fireRate: 0.75, shotTimer: 0.5 + (i % 9) * 0.1 });
+        unit.holdZ = unit.range - 1.5 + (i % 5) * 0.4;
+      }
       this.enemies.push(unit);
     }
   }
@@ -124,6 +130,9 @@ export class DefenseSimulation {
     // Soldiers shoot enemies first; with nothing in range they shoot barrels and growing gates.
     this.targets.update(dt, army.units, this.enemies);
     this.shoot(dt);
+    this.archers.length = 0;
+    for (const unit of this.enemies) if (unit.archer && unit.alive) this.archers.push(unit);
+    if (this.archers.length) this.combat.shoot(dt, this.archers);
     this.projectiles.update(dt);
     for (const barrel of this.barrels) if (!barrel.alive && !barrel.claimed) this.claim(barrel);
     this.prune();
@@ -193,6 +202,7 @@ export class DefenseSimulation {
       if (!unit.alive) continue;
       if (unit.aiState) { this.enemyAI.update(dt, { active: true, units: [unit] }, army); continue; }
       unit.hitTime = Math.max(0, unit.hitTime - dt);
+      if (unit.archer && unit.z <= unit.holdZ) { unit.moving = false; continue; }
       unit.z -= unit.walkSpeed * dt; unit.moving = true;
       // Close in on the army sideways a little: dodging never fully avoids a horde.
       if (unit.z < 16) { const dx = army.center.x - unit.x; unit.x += Math.sign(dx) * Math.min(Math.abs(dx), 0.45 * dt); }
@@ -220,7 +230,8 @@ export class DefenseSimulation {
       best.health = 0; best.alive = false; best.state = 'death';
       this.callbacks.onHit?.(best, true);
     }
-    enemy.health = 0; enemy.alive = false; this.kills++; this.coins += COIN_VALUE[enemy.type] || 0;
+    enemy.health = 0; enemy.alive = false; this.kills++; this.coins += this.coinValue(enemy);
+    this.callbacks.onClash?.(enemy, CHARACTERS[enemy.type].trade || 1);
     this.callbacks.onHit?.(enemy, true);
   }
   prune() {

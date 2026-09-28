@@ -9,6 +9,6 @@ export const upgradeCost = (upgrade, level) => Math.round(upgrade.base * upgrade
 
 // Converts upgrade levels into the modifiers the simulation applies at the start of a stage.
 export function perksFor(levels = {}) {
-  const l = id => levels[id] || 0;
+  const l = id => Math.min(levels[id] || 0, UPGRADES.find(u => u.id === id).max);
   return { soldiers: l('soldiers') * 3, damage: 1 + l('damage') * 0.12, fireRate: 1 + l('fireRate') * 0.1, fort: l('fort') * 2 };
 }

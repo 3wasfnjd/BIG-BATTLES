@@ -16,10 +16,11 @@ import { ARCADE_CHARACTERS } from '../rendering/VisualProfiles.js';
 import { DEFENSE_STAGES } from '../data/defenseStages.js';
 import { UPGRADES } from '../data/upgrades.js';
 import { clamp } from './Config.js';
+import { GameAudio } from './Audio.js';
 import { COIN_VALUE } from './DefenseSimulation.js';
 
 const ICONS = { soldiers: '🛡️', damage: '🏹', fireRate: '⚡', fort: '🏰' };
-const AR_DIGITS = ['١', '٢', '٣', '٤', '٥'];
+const AR_DIGITS = ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 
 // Mob-Control style mode: the army holds the line and only slides left/right while
 // hordes, gates and barrels come to it. Coins buy permanent upgrades between stages.
@@ -28,11 +29,11 @@ export class DefenseGame {
     const $ = id => document.getElementById(id);
     this.ui = Object.fromEntries(['game', 'scene', 'hud', 'start', 'result', 'result-title', 'result-note', 'result-coins', 'army-count', 'progress', 'pause', 'paused', 'replay', 'gate-feedback', 'debug',
       'army-tag', 'giant-tag', 'horde-tag', 'base-meter', 'base-hp', 'stage-label', 'defense-menu', 'menu-coins', 'stage-picker', 'open-upgrades', 'upgrades', 'upgrade-coins', 'upgrade-list',
-      'close-upgrades', 'result-upgrades', 'next-stage', 'breach-flash', 'barrel-tags', 'load-status', 'load-line', 'float-layer', 'banner', 'confetti'].map(id => [id, $(id)]));
+      'close-upgrades', 'result-upgrades', 'next-stage', 'breach-flash', 'barrel-tags', 'load-status', 'load-line', 'float-layer', 'banner', 'confetti', 'lightning', 'sound', 'menu-sound'].map(id => [id, $(id)]));
     this.debug = new URLSearchParams(location.search).get('debug') === '1';
     this.ui.debug.hidden = !this.debug;
     document.body.classList.add('arcade', 'defense');
-    this.progress = new Progress();
+    this.progress = new Progress(); this.audio = new GameAudio(); this.lastShots = 0;
     this.stageId = this.progress.data.stage;
 
     this.renderer = new THREE.WebGLRenderer({ canvas: this.ui.scene, antialias: true, alpha: false, powerPreference: 'high-performance' });
@@ -62,13 +63,16 @@ export class DefenseGame {
     this.sim = new DefenseSimulation({
       onHit: (unit, died) => {
         this.effects.hit(unit, died); if (died && !unit.isProp) this.visuals.die(unit);
+        if (unit.team === 'player') this.audio.hit(); else if (!unit.isProp) died ? this.audio.kill() : this.audio.hit();
+        if (died && unit.type === 'barrel') this.audio.barrel();
         // Coin pops: every giant, brutes at most a few per second so big fights stay readable.
-        if (died && unit.team === 'enemy' && COIN_VALUE[unit.type] >= 4 && (unit.aiState || this.sceneTime - (this.lastCoinPop || -1) > 0.3)) { this.lastCoinPop = this.sceneTime; this.floatText(`+${COIN_VALUE[unit.type]}`, unit.x, unit.aiState ? 3 : 1.6, unit.z, 'coin'); }
+        if (died && unit.team === 'enemy' && COIN_VALUE[unit.type] >= 4 && (unit.aiState || this.sceneTime - (this.lastCoinPop || -1) > 0.3)) { this.lastCoinPop = this.sceneTime; this.floatText(`+${this.sim.coinValue(unit)}`, unit.x, unit.aiState ? 3 : 1.6, unit.z, 'coin'); this.audio.coin(); }
       },
       onSpawn: event => this.announce(event),
-      onGate: (row, choice, added) => this.feedback(choice.type.startsWith('army') ? (added >= 0 ? `+${added}` : `${added}`) : choiceLabel(choice), added < 0),
+      onClash: (enemy, trade) => { this.effects.clash(enemy.x, Math.max(0.2, enemy.z), trade > 1); this.audio.clash(trade > 1); },
+      onGate: (row, choice, added) => this.gateSound(added, choice) || this.feedback(choice.type.startsWith('army') ? (added >= 0 ? `+${added}` : `${added}`) : choiceLabel(choice), added < 0),
       onBarrel: (barrel, added) => this.feedback(barrel.reward.type === 'army_add' ? `+${added}` : choiceLabel(barrel.reward)),
-      onBreach: () => this.breach(),
+      onBreach: () => { this.breach(); this.audio.breach(); },
       onFinish: state => this.finish(state),
     }, this.stage, this.progress.levels);
     this.cameraRig.reset(this.sim.army.depth);
@@ -80,6 +84,8 @@ export class DefenseGame {
     }, () => this.sim.army.targetX);
     const click = (id, handler) => this.ui[id].addEventListener('click', event => { event.stopPropagation(); handler(); });
     click('pause', () => this.pause());
+    for (const id of ['sound', 'menu-sound']) click(id, () => { this.audio.toggle(); this.syncSound(); });
+    this.syncSound();
     click('replay', () => this.restart(this.stageId));
     click('next-stage', () => this.restart(Math.min(DEFENSE_STAGES.length, this.stageId + 1)));
     click('open-upgrades', () => this.openUpgrades());
@@ -109,7 +115,7 @@ export class DefenseGame {
     this.scene.background.set(theme.sky); this.scene.fog.color.set(theme.sky); [this.scene.fog.near, this.scene.fog.far] = theme.fog;
     this.hemi.color.set(theme.hemi[0]); this.hemi.groundColor.set(theme.hemi[1]); this.hemi.intensity = theme.hemi[2];
     this.sun.color.set(theme.sun[0]); this.sun.intensity = theme.sun[1];
-    this.renderer.toneMappingExposure = theme.exposure;
+    this.renderer.toneMappingExposure = theme.exposure; this.theme = theme; this.lightning = { next: 3, flash: 0 };
     document.body.dataset.theme = name; document.documentElement.style.setProperty('--vignette', theme.vignette);
     document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme.sky);
   }
@@ -119,10 +125,13 @@ export class DefenseGame {
   }
   startOrResume() {
     if (!this.ui.upgrades.hidden) return;
+    this.audio.unlock();
     if (this.sim.state === 'ready' && !this.ui.start.hidden) { this.sim.start(); this.ui.start.hidden = true; this.ui.hud.hidden = false; this.ui['base-meter'].hidden = false; this.banner(`المرحلة ${AR_DIGITS[this.stageId - 1]}`, this.stage.name, 'stage'); }
-    else if (this.sim.state === 'paused') { this.sim.state = 'playing'; this.ui.paused.hidden = true; this.loop.resetClock(); }
+    else if (this.sim.state === 'paused') { this.sim.state = 'playing'; this.ui.paused.hidden = true; this.loop.resetClock(); this.audio.setMode('battle'); }
   }
-  pause() { if (this.sim.state === 'playing') { this.sim.state = 'paused'; this.ui.paused.hidden = false; this.input.reset(); } }
+  pause() { if (this.sim.state === 'playing') { this.sim.state = 'paused'; this.ui.paused.hidden = false; this.input.reset(); this.audio.setMode('paused'); } }
+  syncSound() { for (const id of ['sound', 'menu-sound']) { this.ui[id].textContent = this.audio.muted ? '🔇' : '🔊'; this.ui[id].setAttribute('aria-pressed', String(!this.audio.muted)); } }
+  gateSound(added, choice) { this.audio.gate(!(added < 0)); return false; }
   // Rebuild the stage (also applies newly bought upgrades) and return to the start screen.
   restart(stageId, autoStart = true) {
     this.stageId = stageId; this.progress.select(stageId); this.applyTheme();
@@ -132,7 +141,7 @@ export class DefenseGame {
     this.cameraRig.reset(this.sim.army.depth); this.lastCount = -1; this.lastBase = -1;
     this.ui.result.hidden = true; this.ui.paused.hidden = true; this.ui['gate-feedback'].classList.remove('show');
     this.renderMenu();
-    this.giantDamage.clear(); for (const f of this.floats) f.el.hidden = true; this.ui.confetti.textContent = '';
+    this.giantDamage.clear(); this.archerWarned = false; this.lastShots = 0; this.audio.setMode('menu', 0); for (const f of this.floats) f.el.hidden = true; this.ui.confetti.textContent = '';
     if (autoStart) { this.ui.start.hidden = false; this.startOrResume(); } else { this.ui.start.hidden = false; this.ui.hud.hidden = true; }
     this.loop.resetClock();
   }
@@ -196,6 +205,7 @@ export class DefenseGame {
     this.ui['result-upgrades'].hidden = false;
     this.ui.replay.textContent = victory ? 'إعادة' : 'حاول مجددًا';
     if (victory) this.confetti();
+    this.audio.fanfare(victory); this.audio.setMode('menu', 0);
   }
   // Pooled DOM pop-ups pinned to a world position: coins, damage on giants.
   floatText(text, x, y, z, kind) {
@@ -231,8 +241,9 @@ export class DefenseGame {
     el.className = kind; void el.offsetWidth; el.classList.add('show');
   }
   announce(event) {
-    if (event.type === 'boss') { this.banner('⚠ الزعيم قادم', 'دمّره قبل أن يسحق جيشك', 'boss'); this.cameraRig.kick(0.8); }
-    else if (event.type === 'beast') { this.banner('وحش صخري!', 'ركّز السهام عليه', 'boss'); this.cameraRig.kick(0.5); }
+    if (event.type === 'boss') { this.banner('⚠ الزعيم قادم', 'دمّره قبل أن يسحق جيشك', 'boss'); this.cameraRig.kick(0.8); this.audio.roar(); }
+    else if (event.type === 'beast') { this.banner('وحش صخري!', 'ركّز السهام عليه', 'boss'); this.cameraRig.kick(0.5); this.audio.roar(); }
+    else if (event.type === 'horde' && event.archers && !this.archerWarned) { this.archerWarned = true; this.banner('رماة الأعداء!', 'يقفون ويرمون جيشك بالسهام', 'boss'); }
     else if (event.type === 'horde' && event.count >= 100) this.banner('موجة ضخمة!', `${event.count} محارب`, 'wave');
   }
   confetti() {
@@ -274,6 +285,19 @@ export class DefenseGame {
   render(dt, raw) {
     const { army } = this.sim;
     const animDt = this.sim.state === 'paused' ? 0 : dt; this.sceneTime += animDt;
+    if (this.theme.lightning && animDt) {
+      // Storm: occasional double lightning strikes light the whole field.
+      const l = this.lightning; l.next -= animDt;
+      if (l.next <= 0) { l.flash = 1; l.next = 4 + Math.random() * 5; this.ui['lightning'].classList.remove('on'); void this.ui['lightning'].offsetWidth; this.ui['lightning'].classList.add('on'); this.audio?.thunder(); }
+      l.flash = Math.max(0, l.flash - animDt * 3.5);
+      this.hemi.intensity = this.theme.hemi[2] + l.flash * 2.6 * (l.flash > 0.55 && l.flash < 0.7 ? 0.3 : 1);
+    }
+    if (this.sim.state === 'playing') {
+      // Arrow volleys and music intensity follow the fight.
+      const shots = this.sim.projectiles.shots; this.audio.volley(shots - this.lastShots); this.lastShots = shots;
+      if (this.sim.enemies.some(u => u.archer && u.shotFlash > 0.09)) this.audio.enemyArrow();
+      this.audio.setMode('battle', this.sim.enemies.some(u => u.aiState && u.alive) ? 2 : 1);
+    }
     const leader = army.units.find(u => u.type === 'commander');
     this.commandRing.visible = !!leader;
     if (leader) { this.commandRing.position.set(leader.x, 0.05, -leader.z); this.commandRing.rotation.y += animDt; this.commandRing.scale.setScalar(1.6 + Math.sin(this.sceneTime * 4) * 0.12); }
