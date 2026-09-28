@@ -30,7 +30,7 @@ export function play(stage, levels = {}, policy = botTarget) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   for (const stage of DEFENSE_STAGES) {
     const rows = [];
-    for (const level of [0, 1, 2, 3, 4, 6, 8]) {
+    for (const level of [0, 1, 2, 3, 4, 6, 8, 10, 12]) {
       const sim = play(stage, { soldiers: level, damage: level, fireRate: level, fort: level });
       rows.push(`L${level}:${sim.state === 'victory' ? 'WIN' : 'lose'} t=${sim.time.toFixed(0)} army=${sim.army.count}/${sim.peakArmy} base=${sim.base.hp}/${sim.base.maxHp} coins=${sim.coins} leaks=${sim.leaks}`);
     }

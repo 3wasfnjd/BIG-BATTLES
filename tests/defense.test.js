@@ -22,13 +22,15 @@ test('the army holds its line: only sideways movement, the front stays at z = 0'
 });
 
 test('stages get harder: each needs more upgrades, and the last cannot be won early', () => {
-  const results = DEFENSE_STAGES.map(s => [0, 1, 2, 3, 4, 6].map(level => play(s, all(level)).state === 'victory'));
+  const levels = [0, 1, 2, 3, 4, 6, 8];
+  const results = DEFENSE_STAGES.map(s => levels.map(level => play(s, all(level)).state === 'victory'));
   console.log(JSON.stringify(results));
-  const firstWin = results.map(r => r.indexOf(true));
-  assert.ok(firstWin.every(i => i >= 0), 'every stage is winnable with upgrades');
-  assert.ok(firstWin[0] < firstWin[1] && firstWin[1] < firstWin[2], `required levels ${firstWin}`);
+  const firstWin = results.map(r => levels[r.indexOf(true)]);
+  assert.equal(DEFENSE_STAGES.length, 4);
+  assert.ok(results.every(r => r.includes(true)), 'every stage is winnable with upgrades');
+  for (let i = 1; i < firstWin.length; i++) assert.ok(firstWin[i - 1] < firstWin[i], `required levels ${firstWin}`);
   assert.equal(results[0][0], false, 'stage 1 is not won by the scripted player without upgrades');
-  assert.ok(firstWin[2] >= 3);
+  assert.ok(firstWin[3] >= 8, 'stage 4 needs heavy upgrades');
 });
 
 test('arrows charge growing gates; a negative gate costs soldiers but never the commander', () => {

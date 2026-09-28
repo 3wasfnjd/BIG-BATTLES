@@ -15,16 +15,17 @@ The game now plays like Mob Control: **your army holds its line and only slides 
 - **Rules** (`src/core/DefenseSimulation.js`): soldiers auto-fire at enemies in range (17 m). A walker that reaches the line dies and takes a soldier with it (a horned brute takes three). A walker that slips past the army costs castle hearts (brute: 3). Defeat when the army or the castle falls. Hordes drift toward the army when close, so dodging never fully avoids them.
 - **Rewards**: gate pairs arrive with green/red/gold panels; when no enemy is in range, soldiers shoot the growing gates, raising the value by 1 per 20 damage (red gates climb toward zero). Barrels show their HP and reward; break them before they pass for soldiers or an upgrade.
 - **Upgrades** (`src/data/upgrades.js`, `src/core/Progress.js`): coins from kills and stage clears buy start soldiers, arrow damage, fire rate and castle hearts. Coins, levels and unlocked stages are saved in this browser (localStorage, safe if storage is blocked).
-- **Stages** (`src/data/defenseStages.js`): 1 جسر الرمال, 2 وادي الصخور with two rock golems, 3 حصن العملاق with the armoured boss. Enemy HP, speed and counts rise per stage.
+- **Stages** (`src/data/defenseStages.js`): 1 جسر الرمال, 2 وادي الصخور with two rock golems, 3 حصن العملاق with the armoured boss, 4 معقل الظلام. Enemy HP, speed and counts rise per stage.
 - **Difficulty**, measured with a scripted left/right player (`node tools/balance-defense.mjs`), is not an estimate of human win rates:
 
-| Upgrade level (all four) | 0 | 1 | 2 | 3 | 4 | 6 |
-| --- | --- | --- | --- | --- | --- | --- |
-| Stage 1 | lose | win | win | win | win | win |
-| Stage 2 | lose | lose | win | win | win | win |
-| Stage 3 | lose | lose | lose | lose | win | win |
+| Upgrade level (all four) | 0 | 1 | 2 | 3 | 4 | 6 | 8 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Stage 1 | lose | win | win | win | win | win | win |
+| Stage 2 | lose | lose | lose | win | win | win | win |
+| Stage 3 | lose | lose | lose | lose | lose | win | win |
+| Stage 4 | lose | lose | lose | lose | lose | lose | win |
 
-  Reaching level 4 in everything costs about 2,400 coins. A stage 1 clear pays about 790 and stage 2 about 1,180, so stage 3 needs replays.
+  **Stage 4 معقل الظلام** (added later the same day): 6 castle hearts, three rock golems, a 60,000 HP boss, red gates down to -60 and hordes of up to 200. **Faster tempo** for every stage: timelines run 25% sooner, walkers and giants move 22% faster, gates and barrels travel at 6.8 m/s (was 5.2).
 - Also fixed: a stage could end as a victory while a gate or barrel was still approaching.
 
 Validation: 46 Node tests pass (7 new: fixed line, rising difficulty, gate charging/negative gates, barrel rewards and castle breaches, brute trades, save/load, brute instancing). Both modes load in headless Chromium without errors. Phone FPS is still unmeasured.
