@@ -21,8 +21,8 @@ export class CharacterVisualFactory {
     this.shadows.frustumCulled = false; this.shadows.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(this.shadows);
   }
   addBatch(type) {
-    const capacity = type === 'enemyGrunt' ? CONFIG.maxEnemyUnits : type === 'enemyBrute' ? BRUTE_CAPACITY : ['recruit', 'elite'].includes(type) ? CONFIG.maxPlayerUnits : 1;
-    const batch = { type, capacity, meshes: [], frames: [], clips: {}, count: 0, custom: false, animated: null, action: null, loadState: 'placeholder' };
+    const capacity = type === 'enemyGrunt' ? CONFIG.maxEnemyUnits : type === 'enemyBrute' ? BRUTE_CAPACITY : ['recruit', 'elite'].includes(type) ? CONFIG.maxPlayerUnits : this.procedural && ['giantBoss', 'desertBeast'].includes(type) ? 3 : 1;
+    const batch = { type, capacity, hero: !['recruit', 'elite', 'enemyGrunt', 'enemyBrute'].includes(type), meshes: [], frames: [], clips: {}, count: 0, custom: false, animated: null, action: null, loadState: 'placeholder' };
     if (this.procedural) {
       // Procedural chibi poses are ready synchronously; no GLB request or fallback swap.
       const model = this.procedural.model(type);
@@ -37,7 +37,7 @@ export class CharacterVisualFactory {
       const mesh = new THREE.InstancedMesh(part.geometry, part.material, batch.capacity + (batch.capacity > 1 ? CORPSE_LIMIT : 0));
       mesh.frustumCulled = false; mesh.count = 0; mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       // Heroes and giants cast real shadows; the crowd keeps cheap instanced blobs.
-      mesh.castShadow = !!this.procedural && batch.capacity === 1;
+      mesh.castShadow = !!this.procedural && batch.hero;
       this.scene.add(mesh); batch.meshes.push(mesh); return mesh;
     });
   }
@@ -103,7 +103,7 @@ export class CharacterVisualFactory {
     const scale = def.scale * (batch.custom ? def.modelScale : 1);
     const bob = !batch.custom && unit.moving ? Math.sin(time * 13 + unit.id * 1.4) * 0.035 : 0;
     // Procedural crowds get a stable per-unit offset/yaw so ranks never look like a grid.
-    const crowd = this.procedural && batch.capacity > 1, jx = crowd ? ((unit.id * 37) % 11 - 5) * 0.022 : 0, jz = crowd ? ((unit.id * 53) % 13 - 6) * 0.02 : 0;
+    const crowd = this.procedural && !batch.hero, jx = crowd ? ((unit.id * 37) % 11 - 5) * 0.022 : 0, jz = crowd ? ((unit.id * 53) % 13 - 6) * 0.02 : 0;
     this.dummy.position.set(unit.x + jx, bob + (batch.custom ? def.offsetY : 0), -unit.z + jz);
     this.dummy.rotation.set(!batch.custom && unit.telegraph ? Math.sin(time * 14) * 0.035 : 0, unit.aimAngle + (batch.custom ? def.rotationY : 0) + (crowd ? ((unit.id * 29) % 9 - 4) * 0.035 : 0), 0);
     this.dummy.scale.setScalar(scale);
@@ -120,7 +120,7 @@ export class CharacterVisualFactory {
     } else {
       const frame = this.frameFor(batch, unit, time, deathTime); if (!frame) return;
       this.instantiateFrame(batch, frame);
-      for (const mesh of frame.meshes) { mesh.setMatrixAt(frame.count, this.dummy.matrix); mesh.setColorAt(frame.count, unit.hitTime > 0 ? (batch.capacity === 1 ? this.softFlash : this.flash) : this.white); }
+      for (const mesh of frame.meshes) { mesh.setMatrixAt(frame.count, this.dummy.matrix); mesh.setColorAt(frame.count, unit.hitTime > 0 ? (batch.hero ? this.softFlash : this.flash) : this.white); }
       frame.count++;
     }
     batch.count++;

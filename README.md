@@ -27,6 +27,12 @@ The game now plays like Mob Control: **your army holds its line and only slides 
 
   **Stage 4 معقل الظلام** (added later the same day): 6 castle hearts, three rock golems, a 60,000 HP boss, red gates down to -60 and hordes of up to 200. **Faster tempo** for every stage: timelines run 25% sooner, walkers and giants move 22% faster, gates and barrels travel at 6.8 m/s (was 5.2).
 - **Stage worlds** (`src/rendering/StageThemes.js`): each stage has its own biome, sky, fog, lighting, paving, animated ground shader, scenery and particles. Stage 1 is a sea bridge with drifting cloud shadows, stage 2 a red canyon with mesas and dust, stage 3 a snow pass with pines and falling snow, and stage 4 a lava fortress with glowing seams, crystals and rising embers.
+- **Stages 5–7** (added 2026-09-28): 5 مستنقع السموم (poison swamp, fireflies), 6 عاصفة الليل (night storm, rain and lightning), 7 القمر الدامي (blood moon, two armoured bosses). They add **enemy archers**, who stop at a firing line and shoot the army. Enemy HP, speed and volume are much higher, and coins are worth 2×/2.6×/3.2×. The scripted player needs upgrade level 9, 10 and 11 of 12 to clear them.
+
+![Stages 5-7](docs/defense/stages-5-7.jpg)
+
+- **Music and sound** (`src/core/Audio.js`): everything is synthesised with the Web Audio API, so there are no audio files. The music is a D-minor battle loop with taiko drums, bass and a string ostinato; a brass lead joins while a giant is on the field. Sound effects cover arrow volleys, hits, kills, enemy arrows, metal clashes when a walker hits the line, gates, barrels, coins, giant roars, castle breaches, thunder and victory/defeat fanfares. All are throttled for large fights. There is a mute button in the HUD and the start menu, remembered per browser.
+- **Clash effects**: when a walker reaches the line, a white-gold burst with fast metal sparks appears, and a brute adds a camera kick.
 - **Feedback effects**: damage numbers over giants, coin pop-ups for brutes and giants, dust rings where units fall, bigger barrel bursts, a glowing ring under the commander, stage/wave/boss announcement banners with camera kick, a themed vignette and victory confetti.
 - Also fixed: a stage could end as a victory while a gate or barrel was still approaching.
 

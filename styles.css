@@ -103,3 +103,13 @@ body.defense #hud,body.defense .screen,body.defense #upgrades{z-index:2}
 #confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:3}
 #confetti i{position:absolute;top:-20px;width:9px;height:15px;border-radius:2px;animation:confetti linear forwards}
 @keyframes confetti{to{transform:translate(var(--drift),110vh) rotate(var(--spin))}}
+#lightning{position:absolute;inset:0;pointer-events:none;background:#dfe8ff;opacity:0;z-index:1;mix-blend-mode:screen}
+#lightning.on{animation:lightning .7s ease-out}
+@keyframes lightning{0%{opacity:.75}12%{opacity:.1}22%{opacity:.6}100%{opacity:0}}
+.sound-toggle{pointer-events:auto;width:44px;height:44px;border-radius:14px;background:#fff;border:3px solid #0f3550;box-shadow:0 4px 0 #0f3550;font-size:20px;line-height:1;padding:0}
+.menu-row{display:flex;align-items:center;gap:6px}
+body.defense #hud{gap:7px}
+body.defense .stage-meter{min-width:72px;flex:1}
+body.defense .stage-meter span{white-space:nowrap;font-size:15px}
+body.defense #hud .sound-toggle,body.defense #pause{width:40px;height:40px;font-size:17px}
+@media(max-width:380px){body.defense .army-meter strong{font-size:24px}body.defense .pill{font-size:20px;padding:4px 9px}}
