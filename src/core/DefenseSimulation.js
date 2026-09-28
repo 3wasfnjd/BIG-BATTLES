@@ -9,7 +9,7 @@ import { CombatSystem } from '../systems/CombatSystem.js';
 import { EnemySystem } from '../systems/EnemySystem.js';
 import { CONFIG, clamp } from './Config.js';
 import { CHARACTERS } from '../data/characters.js';
-import { DEFENSE_STAGES, SPAWN_Z, PROP_SPEED } from '../data/defenseStages.js';
+import { DEFENSE_STAGES, SPAWN_Z, PROP_SPEED, PACE } from '../data/defenseStages.js';
 import { perksFor } from '../data/upgrades.js';
 
 const HALF = CONFIG.corridorWidth / 2;
@@ -68,7 +68,7 @@ export class DefenseSimulation {
     this.movement = new MovementSystem(); this.targets = new TargetSystem(); this.enemyAI = new EnemySystem((unit, died) => this.hit(unit, died));
     this.projectiles = new ProjectileSystem((unit, died) => this.hit(unit, died));
     this.combat = new CombatSystem(this.targets, this.projectiles);
-    this.lastEventTime = Math.max(...stage.events.map(e => e.t));
+    this.lastEventTime = Math.max(...stage.events.map(e => e.t)) * PACE.time;
   }
   get progress() { return Math.min(1, this.time / (this.lastEventTime + 8)); }
   get enemyCount() { return this.enemies.length; }
@@ -87,7 +87,7 @@ export class DefenseSimulation {
     } else if (event.type === 'horde') this.spawnHorde(event);
     else {
       const giant = event.type === 'boss' ? new GiantBoss(SPAWN_Z + 2) : new DesertBeast(SPAWN_Z + 1);
-      giant.x = event.x || 0; giant.maxHealth = giant.health = event.health || giant.health;
+      giant.x = event.x || 0; giant.speed *= PACE.speed; giant.maxHealth = giant.health = event.health || giant.health;
       this.enemies.push(giant);
     }
     this.callbacks.onSpawn?.(event);
@@ -106,7 +106,7 @@ export class DefenseSimulation {
       const col = i % columns, row = Math.floor(i / columns);
       unit.x = clamp(event.x + (col - (columns - 1) / 2) * 0.72 + ((i * 37) % 7 - 3) * 0.03, -HALF + 0.4, HALF - 0.4);
       unit.z = SPAWN_Z + row * 0.75 + ((i * 53) % 5) * 0.05;
-      unit.walkSpeed = (type === 'enemyBrute' ? Math.min(speed, CHARACTERS.enemyBrute.speed + 0.3) : speed) * (0.95 + ((i * 13) % 10) * 0.01);
+      unit.walkSpeed = (type === 'enemyBrute' ? Math.min(speed, CHARACTERS.enemyBrute.speed + 0.3) : speed) * PACE.speed * (0.95 + ((i * 13) % 10) * 0.01);
       unit.state = 'run'; unit.moving = true; unit.aimAngle = Math.PI; unit.projectileSpeed = 0;
       unit.maxHealth = unit.health = type === 'enemyBrute' ? this.data.bruteHp : this.data.gruntHp;
       this.enemies.push(unit);
@@ -115,7 +115,7 @@ export class DefenseSimulation {
   update(dt) {
     if (this.state !== 'playing') return;
     this.time += dt;
-    while (this.eventIndex < this.data.events.length && this.data.events[this.eventIndex].t <= this.time) this.spawn(this.data.events[this.eventIndex++]);
+    while (this.eventIndex < this.data.events.length && this.data.events[this.eventIndex].t * PACE.time <= this.time) this.spawn(this.data.events[this.eventIndex++]);
     const army = this.army;
     this.movement.update(army, dt, false);
     // The line never advances: keep the front at z = 0.
