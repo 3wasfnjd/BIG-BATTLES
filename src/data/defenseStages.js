@@ -15,11 +15,14 @@ const up = (type, value) => ({ type, value });
 // Power barrels (freeze / fire / shield / lightning) and treasure chests (coins).
 const power = (t, x, hp, value) => barrel(t, x, hp, { type: 'power', value });
 const chest = (t, x, hp, value) => barrel(t, x, hp, { type: 'coins', value });
+// Weapon rewards: the whole army switches weapon for the rest of the stage.
+const weapon = value => ({ type: 'weapon', value });
+const arms = (t, x, hp, value) => barrel(t, x, hp, weapon(value));
 
 export const DEFENSE_STAGES = [
   {
     id: 1, name: 'جسر الرمال', initialArmy: 10, baseHp: 10, clearBonus: 120,
-    gruntSpeed: 2.5, gruntHp: 22, bruteHp: 130,
+    gruntSpeed: 2.5, gruntHp: 33, bruteHp: 180,
     events: [
       gate(0, add(4), add(8)),
       horde(3, 10, -3), horde(5, 10, 3),
@@ -34,6 +37,7 @@ export const DEFENSE_STAGES = [
       chest(36, 3.5, 90, 60),
       gate(38, add(-20), add(6)),
       horde(41, 50, -3.5, { brutes: 5 }), horde(43, 50, 3.5, { brutes: 5 }),
+      gate(44, weapon('rifle'), weapon('triple')),
       power(47, 3.5, 80, 'freeze'),
       { t: 50, type: 'beast', x: 0, health: 4000 },
       horde(53, 90, 0, { width: 13, brutes: 8, speed: 3 }),
@@ -51,12 +55,14 @@ export const DEFENSE_STAGES = [
       gate(13, add(-10), mul(2)),
       power(15, -3.5, 90, 'freeze'),
       horde(17, 36, -4, { brutes: 3 }), horde(19, 36, 4, { brutes: 3 }),
+      arms(20, 3.5, 170, 'magic'),
       barrel(22, 3.5, 160, up('fire_rate', 1.25)),
       gate(25, up('damage', 1.35), up('elite_upgrade', 0.35)),
       horde(28, 80, 0, { width: 12, brutes: 7 }),
       chest(33, 3.5, 150, 90),
       { t: 36, type: 'beast', x: -3, health: 6000 },
       horde(38, 50, 4.5, { brutes: 5 }),
+      gate(40, weapon('cannon'), weapon('rifle')),
       gate(44, add(8), add(-25)),
       horde(47, 100, 0, { width: 13, brutes: 10, speed: 3.2 }),
       barrel(52, -3.5, 200, add(25, false)),
@@ -75,6 +81,7 @@ export const DEFENSE_STAGES = [
       gate(8, add(-12), add(10)),
       horde(10, 50, 0, { width: 12, brutes: 4 }),
       barrel(13, 3.5, 180, add(20, false)),
+      gate(15, weapon('triple'), weapon('magic')),
       gate(17, up('fire_rate', 1.3), up('damage', 1.35)),
       horde(19, 55, -4, { brutes: 6 }), horde(20, 55, 4, { brutes: 6 }),
       power(22, -3.5, 140, 'shield'),
@@ -83,6 +90,7 @@ export const DEFENSE_STAGES = [
       gate(33, add(-30), mul(2)),
       barrel(36, -3.5, 260, up('elite_upgrade', 0.5)),
       horde(38, 90, -4, { brutes: 10 }), horde(39, 90, 4, { brutes: 10 }),
+      arms(40, -3.5, 260, 'cannon'),
       chest(42, 3.5, 200, 120),
       gate(45, add(10), add(-40)),
       horde(48, 140, 0, { width: 13, brutes: 14, speed: 3.4 }),
@@ -103,6 +111,7 @@ export const DEFENSE_STAGES = [
       barrel(10, -3.5, 260, add(25, false)),
       { t: 15, type: 'beast', x: -3, health: 12000 },
       horde(16, 60, 4, { brutes: 8 }),
+      gate(18, weapon('magic'), weapon('cannon')),
       gate(20, up('fire_rate', 1.3), add(-35)),
       horde(22, 110, 0, { width: 13, brutes: 12, speed: 3.6 }),
       power(24, 3.5, 260, 'freeze'),
@@ -126,7 +135,7 @@ export const DEFENSE_STAGES = [
   // Stages 5-7 add enemy archers that hold a firing line and shoot the army.
   {
     id: 5, name: 'مستنقع السموم', initialArmy: 10, baseHp: 6, clearBonus: 1400, coinScale: 2,
-    gruntSpeed: 3.5, gruntHp: 144, bruteHp: 860, archerDamage: 10, archerRange: 13.5,
+    gruntSpeed: 3.5, gruntHp: 198, bruteHp: 1190, archerDamage: 10, archerRange: 13.5,
     events: [
       gate(0, add(10), add(-8)),
       horde(2, 50, -3.5, { brutes: 5, archers: 10 }), horde(3, 50, 3.5, { brutes: 5, archers: 10 }),
@@ -139,9 +148,11 @@ export const DEFENSE_STAGES = [
       gate(23, up('fire_rate', 1.3), add(-40)),
       horde(26, 130, 0, { width: 13, brutes: 14, archers: 18, speed: 3.8 }),
       barrel(29, -3.5, 420, up('damage', 1.35)),
+      gate(30, weapon('cannon'), weapon('rifle')),
       chest(31, 3.5, 380, 150),
       gate(33, add(-50), mul(2)),
       horde(35, 110, -4, { brutes: 14, archers: 14 }), horde(36, 110, 4, { brutes: 14, archers: 14 }),
+      arms(37, 3.5, 450, 'magic'),
       power(40, -3.5, 400, 'freeze'),
       { t: 42, type: 'boss', x: 0, health: 70000 },
       horde(45, 150, 0, { width: 13, brutes: 18, archers: 20, speed: 3.8 }),
@@ -153,7 +164,7 @@ export const DEFENSE_STAGES = [
   },
   {
     id: 6, name: 'عاصفة الليل', initialArmy: 10, baseHp: 5, clearBonus: 2000, coinScale: 2.6,
-    gruntSpeed: 3.6, gruntHp: 136, bruteHp: 820, archerDamage: 12, archerRange: 14,
+    gruntSpeed: 3.6, gruntHp: 147, bruteHp: 890, archerDamage: 12, archerRange: 14,
     events: [
       gate(0, mul(2), add(-10)),
       horde(1, 30, -3.5, { brutes: 3, archers: 6, speed: 3.8 }), horde(2, 30, 3.5, { brutes: 3, archers: 6, speed: 3.8 }),
@@ -162,6 +173,7 @@ export const DEFENSE_STAGES = [
       power(10, -3.5, 380, 'shield'),
       { t: 12, type: 'beast', x: -3, health: 17000 },
       barrel(13, 3.5, 450, add(35, false)),
+      gate(15, weapon('triple'), weapon('cannon')),
       horde(16, 90, 4, { brutes: 12, archers: 14 }),
       gate(20, up('fire_rate', 1.35), add(-45)),
       { t: 22, type: 'beast', x: 3, health: 18000 },
@@ -182,7 +194,7 @@ export const DEFENSE_STAGES = [
   },
   {
     id: 7, name: 'القمر الدامي', initialArmy: 10, baseHp: 5, clearBonus: 3000, coinScale: 3.2,
-    gruntSpeed: 3.8, gruntHp: 183, bruteHp: 1170, archerDamage: 14, archerRange: 14.5,
+    gruntSpeed: 3.8, gruntHp: 231, bruteHp: 1480, archerDamage: 14, archerRange: 14.5,
     events: [
       gate(0, add(-12), mul(2)),
       horde(1, 50, -3.5, { brutes: 5, archers: 10, speed: 4 }), horde(2, 50, 3.5, { brutes: 5, archers: 10, speed: 4 }),
@@ -190,6 +202,7 @@ export const DEFENSE_STAGES = [
       horde(7, 130, 0, { width: 13, brutes: 12, archers: 22, speed: 4.2 }),
       { t: 10, type: 'boss', x: -3, health: 80000 },
       barrel(12, 3.5, 600, add(40, false)),
+      gate(13, weapon('magic'), weapon('rifle')),
       horde(15, 110, 4, { brutes: 14, archers: 16 }),
       gate(19, up('fire_rate', 1.35), add(-60)),
       horde(21, 170, 0, { width: 13, brutes: 18, archers: 26, speed: 4.3 }),
@@ -201,6 +214,7 @@ export const DEFENSE_STAGES = [
       power(33, 3.5, 700, 'fire'),
       barrel(35, -3.5, 800, up('damage', 1.45)),
       { t: 38, type: 'boss', x: 3, health: 100000 },
+      arms(40, 3.5, 820, 'cannon'),
       horde(40, 200, 0, { width: 13, brutes: 24, archers: 28, speed: 4.4 }),
       power(44, -3.5, 760, 'lightning'),
       gate(46, up('elite_upgrade', 0.8), add(-100)),

@@ -44,6 +44,18 @@ The game now plays like Mob Control: **your army holds its line and only slides 
 
 ![Rewards](docs/defense/rewards.jpg)
 
+- **Reference look and fixed camera** (added 2026-09-28): the army is now blue with gold trim and red enemies, as in the reference art. Stage 1 is an open lavender-white snow road with pines, and the camera is fixed: it no longer zooms or pans with army size.
+- **Weapon rewards** (`src/data/weaponKinds.js`): purple gates and barrels switch the whole army's weapon for the rest of the stage, and soldiers visibly hold it:
+  - 🏹 crossbow (default)
+  - 🏹 triple bow: three arrows per shot
+  - 🎯 rifle: fast white tracers, ×1.8 damage
+  - 🔮 magic staff: blue orbs with splash
+  - 💣 cannon: arcing shells with fiery splash
+
+  Each weapon has its own projectile, impact effect and sound. Balance with weapons: the scripted player needs upgrade levels 0/2/4/8/9/10/11 for stages 1–7.
+
+![Look and weapons](docs/defense/weapons.jpg)
+
 - **Clash effects**: when a walker reaches the line, a white-gold burst with fast metal sparks appears, and a brute adds a camera kick.
 - **Feedback effects**: damage numbers over giants, coin pop-ups for brutes and giants, dust rings where units fall, bigger barrel bursts, a glowing ring under the commander, stage/wave/boss announcement banners with camera kick, a themed vignette and victory confetti.
 - Also fixed: a stage could end as a victory while a gate or barrel was still approaching.

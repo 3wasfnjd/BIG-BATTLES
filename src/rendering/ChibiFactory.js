@@ -10,7 +10,8 @@ const UP = V(0, 1, 0);
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 export const PALETTES = {
-  player: { cloth: '#23984c', clothDark: '#17703a', trim: '#f2c14e', metal: '#48c46f', metalDark: '#1a6a38', skin: '#f2c099', cloth2: '#f4efe2', leather: '#7b4a2a', boot: '#4a3020', wood: '#8a5630', steel: '#cfd6de' },
+  // Blue army with gold trim, as in the reference art.
+  player: { cloth: '#2f78e0', clothDark: '#1d4fa6', trim: '#f2c14e', metal: '#4a95f0', metalDark: '#2455b0', skin: '#f2c099', cloth2: '#e8eef8', leather: '#6b4a3a', boot: '#2e2a3a', wood: '#8a5630', steel: '#cfd6de' },
   enemy: { cloth: '#d8343d', clothDark: '#9c1f2b', trim: '#f4e9dc', metal: '#c92f39', metalDark: '#8a1c27', skin: '#e9a47c', cloth2: '#3b2a2e', leather: '#4a2d26', boot: '#2e2224', wood: '#6b3d24', steel: '#b9c0ca' },
 };
 
@@ -111,7 +112,7 @@ function limb(rig, s, color, bone, a, b, radius) {
   rig.add(s.capsule(radius, length), color, bone, matrix);
 }
 
-function humanoid(kind, s) {
+function humanoid(kind, s, weapon = 'crossbow') {
   const brute = kind === 'enemyBrute', player = kind !== 'enemyGrunt' && !brute;
   const p = player ? PALETTES.player : brute ? { ...PALETTES.enemy, metal: '#3b3440', metalDark: '#241f28', cloth: '#b22631' } : PALETTES.enemy;
   const elite = kind === 'elite', commander = kind === 'commander';
@@ -129,7 +130,7 @@ function humanoid(kind, s) {
   // Hem trim.
   rig.add(s.torus(0.3, 0.028, 4, 14), elite || commander ? p.trim : p.clothDark, 'body', T(0, 0.19, 0, Math.PI / 2));
   // Cape over the back (+Z).
-  const capeColor = commander ? '#1c7a3e' : p.clothDark;
+  const capeColor = commander ? '#2a6ad8' : p.clothDark;
   const cape = commander ? [[0.2, 0.66], [0.27, 0.48], [0.36, 0.2], [0.4, 0.06]] : [[0.2, 0.65], [0.26, 0.5], [0.32, 0.3], [0.33, 0.22]];
   rig.add(s.lathe(cape, 10, -1.25, 2.5), capeColor, 'body', T());
   if (player) {
@@ -189,15 +190,34 @@ function humanoid(kind, s) {
     limb(rig, s, commander ? p.clothDark : p.cloth, 'arms', shoulder, hand, 0.062);
     rig.add(s.lowSphere, p.skin, 'arms', T(hand.x, hand.y, hand.z, 0, 0, 0, 0.062, 0.062, 0.062));
   }
-  if (player) {
-    // Crossbow held level, pointing forward.
-    const wood = elite || commander ? '#6b3f22' : p.wood, limbColor = elite || commander ? p.trim : '#3c3f4a';
-    rig.add(s.box, wood, 'arms', T(0, 0.53, -0.42, 0, 0, 0, 0.075, 0.075, 0.46));
+  if (player && weapon === 'rifle') {
+    // Long rifle: dark barrel, wooden stock, brass bands.
+    rig.add(s.box, '#6b3f22', 'arms', T(0, 0.52, -0.3, 0, 0, 0, 0.07, 0.09, 0.34));
+    rig.add(s.cyl, '#2b2f38', 'arms', T(0, 0.56, -0.62, Math.PI / 2, 0, 0, 0.03, 0.62, 0.03));
+    for (const z of [-0.45, -0.75]) rig.add(s.cyl, p.trim, 'arms', T(0, 0.56, z, Math.PI / 2, 0, 0, 0.038, 0.03, 0.038));
+    rig.add(s.box, '#2b2f38', 'arms', T(0, 0.61, -0.4, 0, 0, 0, 0.03, 0.04, 0.12));
+  } else if (player && weapon === 'magic') {
+    // Magic staff with a glowing orb, held upright in front.
+    rig.add(s.cyl, '#7a4a2a', 'arms', T(0.05, 0.62, -0.36, -0.25, 0, 0, 0.025, 0.8, 0.025));
+    rig.add(s.torus(0.08, 0.018, 4, 10, Math.PI * 1.4), p.trim, 'arms', T(0.05, 1.04, -0.47, 0, 0, Math.PI * 0.8));
+    rig.add(s.sphere, '#6fd8ff', 'arms', T(0.05, 1.05, -0.47, 0, 0, 0, 0.075, 0.075, 0.075), { glow: true });
+  } else if (player && weapon === 'cannon') {
+    // Hand cannon resting on the arms, muzzle forward.
+    rig.add(s.cyl, '#30343e', 'arms', T(0, 0.6, -0.36, Math.PI / 2 - 0.08, 0, 0, 0.1, 0.62, 0.1));
+    for (const z of [-0.12, -0.62]) rig.add(s.cyl, p.trim, 'arms', T(0, 0.6 + (z + 0.36) * 0.08, z, Math.PI / 2 - 0.08, 0, 0, 0.115, 0.05, 0.115));
+    rig.add(s.cyl, '#101216', 'arms', T(0, 0.62, -0.675, Math.PI / 2 - 0.08, 0, 0, 0.07, 0.01, 0.07));
+  } else if (player) {
+    // Crossbow held level, pointing forward (the triple bow is golden with three bolts).
+    const triple = weapon === 'triple';
+    const wood = elite || commander || triple ? '#6b3f22' : p.wood, limbColor = elite || commander || triple ? p.trim : '#3c3f4a';
+    rig.add(s.box, wood, 'arms', T(0, 0.53, -0.42, 0, 0, 0, triple ? 0.1 : 0.075, 0.075, 0.46));
     // Bow limbs: an arc in the horizontal plane, bending back toward the shooter.
-    rig.add(s.torus(0.26, 0.026, 4, 12, Math.PI * 0.7), limbColor, 'arms', T(0, 0.55, -0.36, -Math.PI / 2, 0, Math.PI * 0.15));
-    for (const side of [-1, 1]) rig.add(s.tinySphere, p.trim, 'arms', T(side * 0.23, 0.55, -0.48, 0, 0, 0, 0.035, 0.035, 0.035));
-    rig.add(s.cyl, p.steel, 'arms', T(0, 0.585, -0.55, Math.PI / 2, 0, 0, 0.013, 0.34, 0.013));
-    rig.add(s.cone, p.trim, 'arms', T(0, 0.585, -0.74, -Math.PI / 2, 0, 0, 0.028, 0.08, 0.028));
+    rig.add(s.torus(triple ? 0.32 : 0.26, 0.026, 4, 12, Math.PI * 0.7), limbColor, 'arms', T(0, 0.55, -0.36, -Math.PI / 2, 0, Math.PI * 0.15));
+    for (const side of [-1, 1]) rig.add(s.tinySphere, p.trim, 'arms', T(side * (triple ? 0.29 : 0.23), 0.55, -0.48, 0, 0, 0, 0.035, 0.035, 0.035));
+    for (const dx of triple ? [-0.06, 0, 0.06] : [0]) {
+      rig.add(s.cyl, p.steel, 'arms', T(dx, 0.585, -0.55, Math.PI / 2, 0, 0, 0.013, 0.34, 0.013));
+      rig.add(s.cone, p.trim, 'arms', T(dx, 0.585, -0.74, -Math.PI / 2, 0, 0, 0.028, 0.08, 0.028));
+    }
   } else if (brute) {
     // Brute: huge spiked club held in both hands.
     // Club resting on the right shoulder so the face stays visible.
@@ -345,10 +365,11 @@ export class ChibiFactory {
     return { body: this.body, glow: this.glow };
   }
   // Returns { frames: [{ parts }], clips } matching the shared crowd batch format.
-  model(type) {
-    if (this.cache.has(type)) return this.cache.get(type);
+  model(type, weapon = 'crossbow') {
+    const key = `${type}:${weapon}`;
+    if (this.cache.has(key)) return this.cache.get(key);
     const shapes = ['recruit', 'elite', 'enemyGrunt', 'enemyBrute'].includes(type) ? this.crowdShapes : this.shapes;
-    const { rig, bones } = type === 'desertBeast' ? golem(shapes) : type === 'giantBoss' ? knight(shapes) : humanoid(type, shapes);
+    const { rig, bones } = type === 'desertBeast' ? golem(shapes) : type === 'giantBoss' ? knight(shapes) : humanoid(type, shapes, weapon);
     const clips = ['desertBeast', 'giantBoss'].includes(type) ? giantClips(type === 'giantBoss') : humanClips();
     const { body, glow } = this.materials();
     const frames = [], outClips = {};
@@ -364,7 +385,7 @@ export class ChibiFactory {
     }
     for (const { geometry } of [...rig.parts, ...rig.glow]) geometry.dispose();
     const model = { frames, clips: outClips };
-    this.cache.set(type, model);
+    this.cache.set(key, model);
     return model;
   }
   static triangles(model) { return model.frames[0].parts.reduce((sum, part) => sum + part.geometry.attributes.position.count / 3, 0); }

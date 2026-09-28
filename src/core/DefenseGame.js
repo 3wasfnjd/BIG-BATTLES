@@ -15,6 +15,7 @@ import { WorldLabels } from '../rendering/WorldLabels.js';
 import { ARCADE_CHARACTERS } from '../rendering/VisualProfiles.js';
 import { DEFENSE_STAGES } from '../data/defenseStages.js';
 import { UPGRADES } from '../data/upgrades.js';
+import { WEAPON_KINDS } from '../data/weaponKinds.js';
 import { clamp } from './Config.js';
 import { GameAudio } from './Audio.js';
 import { COIN_VALUE, ENERGY_MAX } from './DefenseSimulation.js';
@@ -53,7 +54,7 @@ export class DefenseGame {
     this.applyTheme();
     this.effects = new ArcadeEffects(this.scene);
     this.props = new DefenseProps(this.scene, this.chibi.model('recruit').frames[0].parts);
-    this.cameraRig = new ArcadeCameraRig(this.camera, { ahead: 12 });
+    this.cameraRig = new ArcadeCameraRig(this.camera, { ahead: 11, fixed: true });
     this.labels = new WorldLabels(this.camera, { army: this.ui['army-tag'], giant: this.ui['giant-tag'] });
     this.barrelTags = []; this.floats = []; this.floatVector = new THREE.Vector3(); this.giantDamage = new Map();
     // Glowing command ring under the commander.
@@ -77,6 +78,8 @@ export class DefenseGame {
       onRainImpact: () => { this.cameraRig.kick(0.6); this.audio.rainImpact(); },
       onLightning: points => { this.effects.lightning(points); this.audio.thunder(true); },
       onCombo: (count, bonus) => this.showCombo(count, bonus),
+      onSplash: (x, z, kind) => { this.effects.explosion(x, z, kind); this.audio.blast(kind); },
+      onWeapon: kind => { this.visuals.setWeapon(kind); this.banner(`${WEAPON_KINDS[kind].icon} ${WEAPON_KINDS[kind].name}`, 'سلاح جديد لكل الجيش!', 'weapon'); this.audio.power('weapon'); },
       onClash: (enemy, trade) => { this.effects.clash(enemy.x, Math.max(0.2, enemy.z), trade > 1); this.audio.clash(trade > 1); },
       onGate: (row, choice, added) => this.gateSound(added, choice) || this.feedback(choice.type.startsWith('army') ? (added >= 0 ? `+${added}` : `${added}`) : choiceLabel(choice), added < 0),
       onBarrel: (barrel, added) => { const r = barrel.reward; this.feedback(r.type === 'army_add' ? `+${added}` : r.type === 'coins' ? `💰 +${Math.round(r.value * (this.stage.coinScale || 1))}` : choiceLabel(r)); if (r.type === 'power' || r.type === 'coins') this.audio.power(r.value); },
@@ -151,7 +154,7 @@ export class DefenseGame {
     this.cameraRig.reset(this.sim.army.depth); this.lastCount = -1; this.lastBase = -1;
     this.ui.result.hidden = true; this.ui.paused.hidden = true; this.ui['gate-feedback'].classList.remove('show');
     this.renderMenu();
-    this.giantDamage.clear(); this.ui['rain-btn'].hidden = true; this.ui.frost.classList.remove('on'); this.ui.powers.textContent = ''; this.lastPowers = ''; this.archerWarned = false; this.lastShots = 0; this.audio.setMode('menu', 0); for (const f of this.floats) f.el.hidden = true; this.ui.confetti.textContent = '';
+    this.giantDamage.clear(); this.visuals.setWeapon('crossbow'); this.ui['rain-btn'].hidden = true; this.ui.frost.classList.remove('on'); this.ui.powers.textContent = ''; this.lastPowers = ''; this.archerWarned = false; this.lastShots = 0; this.audio.setMode('menu', 0); for (const f of this.floats) f.el.hidden = true; this.ui.confetti.textContent = '';
     if (autoStart) { this.ui.start.hidden = false; this.startOrResume(); } else { this.ui.start.hidden = false; this.ui.hud.hidden = true; }
     this.loop.resetClock();
   }
@@ -262,7 +265,7 @@ export class DefenseGame {
     else if (event.type === 'horde' && event.count >= 100) this.banner('موجة ضخمة!', `${event.count} محارب`, 'wave');
   }
   confetti() {
-    const box = this.ui.confetti, colors = ['#ffd24a', '#2fae5b', '#ffffff', '#ff6a5c', '#5fc8ff'];
+    const box = this.ui.confetti, colors = ['#ffd24a', '#3a86ff', '#ffffff', '#ff6a5c', '#5fc8ff'];
     box.textContent = '';
     for (let i = 0; i < 60; i++) {
       const piece = document.createElement('i');
@@ -320,7 +323,7 @@ export class DefenseGame {
     }
     if (this.sim.state === 'playing') {
       // Arrow volleys and music intensity follow the fight.
-      const shots = this.sim.projectiles.shots; this.audio.volley(shots - this.lastShots); this.lastShots = shots;
+      const shots = this.sim.projectiles.shots; this.audio.volley(shots - this.lastShots, this.sim.weapon); this.lastShots = shots;
       if (this.sim.enemies.some(u => u.archer && u.shotFlash > 0.09)) this.audio.enemyArrow();
       this.audio.setMode('battle', this.sim.enemies.some(u => u.aiState && u.alive) ? 2 : 1);
     }
@@ -358,7 +361,8 @@ export class DefenseGame {
     this.ui.progress.style.transform = `scaleX(${this.sim.progress.toFixed(3)})`;
     const charge = this.sim.energy / ENERGY_MAX, rain = this.ui['rain-btn'];
     rain.style.setProperty('--charge', charge.toFixed(3)); rain.classList.toggle('ready', charge >= 1 && !this.sim.rain);
-    const chips = Object.entries(this.sim.powers).filter(([, t]) => t > 0).map(([k, t]) => `${POWER_LABELS[k]} ${Math.ceil(t)}`).join('|');
+    const weapon = this.sim.weapon !== 'crossbow' ? [`${WEAPON_KINDS[this.sim.weapon].icon} ${WEAPON_KINDS[this.sim.weapon].name}`] : [];
+    const chips = weapon.concat(Object.entries(this.sim.powers).filter(([, t]) => t > 0).map(([k, t]) => `${POWER_LABELS[k]} ${Math.ceil(t)}`)).join('|');
     if (chips !== this.lastPowers) { this.lastPowers = chips; this.ui.powers.innerHTML = chips ? chips.split('|').map(c => `<span>${c}</span>`).join('') : ''; }
     if (this.debug) this.ui.debug.textContent = [
       `Build ${RELEASE || 'dev'} · defence stage ${this.stageId}`,

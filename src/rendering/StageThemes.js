@@ -21,6 +21,14 @@ export const THEMES = {
     stone: ['#c79a6c', '#e0bb8c'], pillarCap: '#c4552e', fort: ['#b9774a', '#d49a66', '#7a2a1e'],
     scatter: 'mesa', particles: { color: '#fff1d6', count: 90, size: 0.12, fall: -0.15, drift: 1.2, additive: false, opacity: 0.5 }, clouds: 0.1,
   },
+  // Stage 1 follows the reference art: an open, soft lavender-white snow road with pines.
+  snowfield: {
+    sky: '#dfe3f3', fog: [55, 125], exposure: 1.02, hemi: ['#ffffff', '#a9aecb', 1.45], sun: ['#fff8ee', 2.3], vignette: '#3a4a7a',
+    paving: { field: true, base: '#d9dcee', track: '#c6cae3' },
+    ground: { a: '#f4f5fb', b: '#dfe3f1', hi: '#ffffff', glint: 0.5, edge: '#ffffff', edgeStrength: 0.35, speed: 0.1, glow: 0 },
+    stone: ['#eef0f8', '#ffffff'], pillarCap: '#ffffff', fort: ['#9aa2b8', '#e6eaf5', '#c42f3a'],
+    scatter: 'pine', flat: true, particles: { color: '#ffffff', count: 120, size: 0.13, fall: 0.9, drift: 0.5, additive: false, opacity: 0.85 }, clouds: 0.06,
+  },
   snow: {
     sky: '#cfe4f4', fog: [45, 115], exposure: 1.0, hemi: ['#ffffff', '#9fb2c8', 1.35], sun: ['#fff6ea', 2.6], vignette: '#28476a',
     paving: { bg: '#8e97a3', tone: 196, spread: 26, warm: -8, snow: true },
@@ -57,11 +65,29 @@ export const THEMES = {
     scatter: 'spire', particles: { color: '#ff4a4a', count: 180, size: 0.14, fall: -1.2, drift: 1, additive: true, opacity: 1 }, clouds: 0, moon: true,
   },
 };
-export const STAGE_THEME = ['sea', 'canyon', 'snow', 'lava', 'swamp', 'storm', 'bloodmoon'];
+export const STAGE_THEME = ['snowfield', 'canyon', 'snow', 'lava', 'swamp', 'storm', 'bloodmoon'];
 
 function random(seed) { return () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }; }
 
+function snowField(theme, size = 512) {
+  const canvas = document.createElement('canvas'); canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d'), r = random(17);
+  ctx.fillStyle = theme.paving.base; ctx.fillRect(0, 0, size, size);
+  // Two faint trampled tracks and soft drifts, repeating along the road.
+  for (const x of [0.3, 0.7]) { const g = ctx.createLinearGradient(size * (x - 0.08), 0, size * (x + 0.08), 0); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.5, theme.paving.track); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.globalAlpha = 0.22; ctx.fillStyle = g; ctx.fillRect(size * (x - 0.08), 0, size * 0.16, size); }
+  ctx.globalAlpha = 1;
+  for (let i = 0; i < 40; i++) {
+    const x = r() * size, y = r() * size, rad = 20 + r() * 60, g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+    const light = r() < 0.5; g.addColorStop(0, light ? 'rgba(255,255,255,0.45)' : 'rgba(170,176,214,0.18)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, rad * 1.6, rad * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  for (let i = 0; i < 3000; i++) { ctx.fillStyle = `rgba(255,255,255,${0.2 + r() * 0.4})`; ctx.fillRect(r() * size, r() * size, 1, 1); }
+  const t = new THREE.CanvasTexture(canvas); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
+  return { map: t, emissiveMap: null };
+}
+
 function paving(theme, size = 512) {
+  if (theme.paving.field) return snowField(theme, size);
   const { bg, tone: base, spread, warm, snow, seams } = theme.paving;
   const color = document.createElement('canvas'), glow = seams ? document.createElement('canvas') : null;
   for (const c of [color, glow]) if (c) { c.width = c.height = size; }
@@ -180,15 +206,15 @@ export class ThemedEnvironment {
     const add = object => { scene.add(object); this.objects.push(object); return object; };
     const material = new THREE.MeshLambertMaterial({ vertexColors: true }); this.disposables.push(material);
     this.ground = add(new THREE.Mesh(new THREE.PlaneGeometry(260, 260).rotateX(-Math.PI / 2), groundMaterial(theme)));
-    this.ground.position.set(0, -1.6, -30);
+    this.ground.position.set(0, theme.flat ? -0.04 : -1.6, -30);
     const deckLength = length + 120, { map, emissiveMap } = paving(theme);
-    for (const t of [map, emissiveMap]) if (t) { t.repeat.set(DECK_HALF_WIDTH * 2 / 8, deckLength / 8); this.disposables.push(t); }
+    for (const t of [map, emissiveMap]) if (t) { t.repeat.set(theme.paving.field ? 1 : DECK_HALF_WIDTH * 2 / 8, deckLength / (theme.paving.field ? 16 : 8)); this.disposables.push(t); }
     const deckMaterial = new THREE.MeshLambertMaterial({ map, emissiveMap, emissive: emissiveMap ? '#ffffff' : '#000000', emissiveIntensity: emissiveMap ? 1.4 : 0 });
     this.deckMaterial = deckMaterial; this.disposables.push(deckMaterial);
     const deck = add(new THREE.Mesh(new THREE.PlaneGeometry(DECK_HALF_WIDTH * 2, deckLength).rotateX(-Math.PI / 2), deckMaterial));
     deck.position.set(0, 0, -deckLength / 2 + 40); deck.receiveShadow = true;
     const flankMaterial = new THREE.MeshLambertMaterial({ color: theme.stone[0] }); this.disposables.push(flankMaterial);
-    for (const side of [-1, 1]) {
+    if (!theme.flat) for (const side of [-1, 1]) {
       const flank = add(new THREE.Mesh(new THREE.PlaneGeometry(deckLength, 2.4), flankMaterial));
       flank.rotation.y = side * Math.PI / 2; flank.position.set(side * (DECK_HALF_WIDTH + 0.92), -0.6, deck.position.z);
     }
@@ -201,22 +227,22 @@ export class ThemedEnvironment {
         bb.add(stone, theme.stone[0], 0, 1.1, 0, 1.5, 2.2, 1.5); bb.add(stone, theme.stone[1], 0, 2.3, 0, 1.75, 0.3, 1.75);
         bb.add(cone, theme.pillarCap, 0, 2.95, 0, 0.62, 1.0, 0.62);
       }),
-      banner: build(bb => { bb.add(box, '#2fae5b', 0.8, 1.35, 0, 0.06, 1.6, 0.9); bb.add(box, '#f2c14e', 0.84, 1.35, 0, 0.02, 1.2, 0.18); bb.add(box, '#f2c14e', 0.8, 2.18, 0, 0.1, 0.08, 1.0); }),
+      banner: build(bb => { bb.add(box, '#2f78e0', 0.8, 1.35, 0, 0.06, 1.6, 0.9); bb.add(box, '#f2c14e', 0.84, 1.35, 0, 0.02, 1.2, 0.18); bb.add(box, '#f2c14e', 0.8, 2.18, 0, 0.1, 0.08, 1.0); }),
       pier: build(bb => { bb.add(stone, theme.stone[0], 0, -1.2, 0, 2.6, 2.6, 2.6); }),
       scenery: scenery(theme.scatter, theme),
     };
     stone.dispose(); cone.dispose(); box.dispose();
     const list = Object.fromEntries(Object.keys(kit).map(k => [k, []])), dummy = new THREE.Object3D(), r = random(1234);
     const place = (key, x, y, z, sx = 1, sy = sx, sz = sx, ry = 0) => { dummy.position.set(x, y, z); dummy.scale.set(sx, sy, sz); dummy.rotation.set(0, ry, 0); dummy.updateMatrix(); list[key].push(dummy.matrix.clone()); };
-    for (let z = 40; z > -length - 80; z -= 2) for (const side of [-1, 1]) place('block', side * (DECK_HALF_WIDTH + 0.45), 0, z - 1, 1, 1 + r() * 0.06, 1);
-    for (let z = 32; z > -length - 80; z -= 16) for (const side of [-1, 1]) {
+    if (!theme.flat) for (let z = 40; z > -length - 80; z -= 2) for (const side of [-1, 1]) place('block', side * (DECK_HALF_WIDTH + 0.45), 0, z - 1, 1, 1 + r() * 0.06, 1);
+    if (!theme.flat) for (let z = 32; z > -length - 80; z -= 16) for (const side of [-1, 1]) {
       place('pillar', side * (DECK_HALF_WIDTH + 0.45), 0, z); place('pier', side * (DECK_HALF_WIDTH + 0.9), 0, z);
       place('banner', side * (DECK_HALF_WIDTH + 0.45), 0, z, 1, 1, 1, side > 0 ? Math.PI : 0);
     }
     const tall = theme.scatter === 'mesa' || theme.scatter === 'spire';
     for (let i = 0; i < (theme.scatter === 'pine' ? 130 : 70); i++) {
       const side = r() < 0.5 ? -1 : 1, z = 30 - r() * (length + 100), s = tall ? 1.5 + r() * 3 : theme.scatter === 'pine' || theme.scatter === 'deadtree' ? 1 + r() * 1.3 : 0.5 + r() * 1.6;
-      place('scenery', side * (DECK_HALF_WIDTH + (tall ? 6 : 3) + r() * (tall ? 30 : 18)), theme.scatter === 'rock' ? -1.5 : theme.scatter === 'deadtree' ? -1.3 : -1.6, z, s, s * (tall ? 0.8 + r() * 0.8 : 1), s, r() * 6);
+      place('scenery', side * (DECK_HALF_WIDTH + (tall ? 6 : theme.flat ? 1.5 : 3) + r() * (tall ? 30 : 18)), theme.flat ? 0 : theme.scatter === 'rock' ? -1.5 : theme.scatter === 'deadtree' ? -1.3 : -1.6, z, s, s * (tall ? 0.8 + r() * 0.8 : 1), s, r() * 6);
     }
     for (const [key, matrices] of Object.entries(list)) {
       if (!matrices.length) continue;

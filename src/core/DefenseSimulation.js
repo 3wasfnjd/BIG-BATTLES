@@ -11,6 +11,7 @@ import { CONFIG, clamp } from './Config.js';
 import { CHARACTERS } from '../data/characters.js';
 import { DEFENSE_STAGES, SPAWN_Z, PROP_SPEED, PACE } from '../data/defenseStages.js';
 import { perksFor } from '../data/upgrades.js';
+import { WEAPON_KINDS } from '../data/weaponKinds.js';
 
 const HALF = CONFIG.corridorWidth / 2;
 const PANEL_X = 3.6;
@@ -56,7 +57,12 @@ class Barrel {
   }
 }
 
-const wrapRange = apply => unit => { apply(unit); unit.range = Math.min(unit.range, DEFENSE_RANGE); };
+// Defence range cap plus the army's current weapon kind.
+const wrapRange = (apply, sim) => unit => {
+  apply(unit); unit.range = Math.min(unit.range, DEFENSE_RANGE);
+  const kind = WEAPON_KINDS[sim.weapon] || WEAPON_KINDS.crossbow;
+  unit.damage *= kind.damage; unit.fireRate *= kind.rate; unit.projectileSpeed *= kind.speed;
+};
 
 export class DefenseSimulation {
   constructor(callbacks = {}, stage = DEFENSE_STAGES[0], levels = {}) { this.callbacks = callbacks; this.reset(stage, levels); }
@@ -65,14 +71,15 @@ export class DefenseSimulation {
     this.state = 'ready'; this.time = 0; this.kills = 0; this.coins = 0; this.eventIndex = 0; this.leaks = 0;
     this.army = new PlayerArmy(stage.initialArmy + this.perks.soldiers);
     this.army.upgrades.damage = this.perks.damage; this.army.upgrades.fireRate = this.perks.fireRate;
-    this.army.applyWeapon = wrapRange(this.army.applyWeapon.bind(this.army));
+    this.weapon = 'crossbow';
+    this.army.applyWeapon = wrapRange(this.army.applyWeapon.bind(this.army), this);
     for (const unit of this.army.units) this.army.applyWeapon(unit);
     this.base = { hp: stage.baseHp + this.perks.fort, maxHp: stage.baseHp + this.perks.fort };
     this.peakArmy = this.army.count;
     this.energy = 0; this.rain = null; this.powers = { freeze: 0, fire: 0, shield: 0 }; this.combo = { count: 0, timer: 0, best: 0 };
     this.enemies = []; this.gates = []; this.barrels = []; this.props = []; this.targetables = []; this.archers = [];
     this.movement = new MovementSystem(); this.targets = new TargetSystem(); this.enemyAI = new EnemySystem((unit, died) => this.hit(unit, died));
-    this.projectiles = new ProjectileSystem((unit, died) => this.hit(unit, died));
+    this.projectiles = new ProjectileSystem((unit, died) => this.hit(unit, died)); this.projectiles.onSplash = bullet => this.splash(bullet);
     this.combat = new CombatSystem(this.targets, this.projectiles);
     this.lastEventTime = Math.max(...stage.events.map(e => e.t)) * PACE.time;
   }
@@ -186,13 +193,37 @@ export class DefenseSimulation {
       unit.state = unit.shotFlash > 0 ? 'shoot' : unit.moving ? 'run' : 'idle';
       if (unit.shotTimer > 0) continue;
       const target = this.targets.select(unit) || this.propTarget(unit);
-      if (target && this.projectiles.fire(unit, target)) {
-        // Fire arrows: double damage while the power lasts.
-        if (this.powers.fire > 0) { const bolt = this.projectiles.pool.active[this.projectiles.pool.active.length - 1]; bolt.damage *= 2; bolt.fire = true; }
+      if (target && this.fireAt(unit, target)) {
+        // The triple bow looses two more arrows at other targets.
+        for (let extra = 1; extra < (WEAPON_KINDS[this.weapon]?.shots || 1); extra++) { const next = this.targets.select(unit) || target; this.fireAt(unit, next); }
         unit.shotTimer = 1 / unit.fireRate; unit.shotFlash = 0.1; unit.state = 'shoot';
         unit.aimAngle = Math.atan2(unit.x - target.x, target.z - unit.z);
       } else unit.shotTimer = 0.08;
     }
+  }
+  fireAt(unit, target) {
+    if (!this.projectiles.fire(unit, target)) return false;
+    const bolt = this.projectiles.pool.active[this.projectiles.pool.active.length - 1], kind = WEAPON_KINDS[this.weapon];
+    bolt.kind = this.weapon; bolt.splash = target.isProp ? 0 : kind.splash; bolt.share = kind.share;
+    bolt.startDist = Math.hypot(target.x - unit.x, target.z - unit.z);
+    // Fire arrows: double damage while the power lasts.
+    if (this.powers.fire > 0) { bolt.damage *= 2; bolt.fire = true; }
+    return true;
+  }
+  // Magic and cannon shots also hurt enemies around the impact point.
+  splash(bullet) {
+    let hits = 0;
+    for (const unit of this.enemies) {
+      if (hits >= 8) break;
+      if (!unit.alive || unit === bullet.target || (unit.x - bullet.tx) ** 2 + (unit.z - bullet.tz) ** 2 > bullet.splash ** 2) continue;
+      this.strike(unit, bullet.damage * bullet.share); hits++;
+    }
+    this.callbacks.onSplash?.(bullet.tx, bullet.tz, bullet.kind);
+  }
+  setWeapon(kind) {
+    if (!WEAPON_KINDS[kind]) return;
+    this.weapon = kind; for (const unit of this.army.units) this.army.applyWeapon(unit);
+    this.callbacks.onWeapon?.(kind);
   }
   propTarget(unit) {
     let best = null, bestZ = Infinity;
@@ -225,7 +256,8 @@ export class DefenseSimulation {
   }
   claim(barrel) { barrel.claimed = true; const before = this.army.count; this.apply(barrel.reward); this.callbacks.onBarrel?.(barrel, this.army.count - before); }
   apply(choice) {
-    if (choice.type === 'coins') this.coins += Math.round(choice.value * (this.data.coinScale || 1));
+    if (choice.type === 'weapon') this.setWeapon(choice.value);
+    else if (choice.type === 'coins') this.coins += Math.round(choice.value * (this.data.coinScale || 1));
     else if (choice.type === 'power') { if (choice.value === 'lightning') this.lightning(); else this.powers[choice.value] = POWER_TIME[choice.value]; }
     else if (choice.type === 'army_add' && choice.value < 0) this.removeSoldiers(-choice.value);
     else this.army.upgrade(choice.type, choice.value);

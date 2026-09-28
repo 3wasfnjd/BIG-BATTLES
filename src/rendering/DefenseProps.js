@@ -1,19 +1,21 @@
 import * as THREE from 'three';
 import { GAME_FONT } from './ArcadeGateRenderer.js';
 import { gateLabel } from './GateRenderer.js';
+import { WEAPON_KINDS } from '../data/weaponKinds.js';
 
 const PANEL_W = 6.6, PANEL_H = 2.3;
 const STYLE = {
-  good: { top: '#62e79d', bottom: '#17a05a', edge: '#c4ffdc', ink: 'rgba(8,56,30,0.92)' },
+  good: { top: '#6ab4ff', bottom: '#1f62d0', edge: '#d0e6ff', ink: 'rgba(8,30,80,0.92)' },
   bad: { top: '#ff7a6e', bottom: '#c8202d', edge: '#ffd0cb', ink: 'rgba(80,6,12,0.92)' },
   upgrade: { top: '#ffd96e', bottom: '#e39018', edge: '#fff0bc', ink: 'rgba(92,48,6,0.92)' },
+  weapon: { top: '#c89bff', bottom: '#6a2fd0', edge: '#ecdcff', ink: 'rgba(40,10,80,0.92)' },
 };
 const TITLES = { army_multiply: 'ضعف الجيش', weapon_upgrade: 'سلاح أقوى', fire_rate: 'رمي أسرع', damage: 'ضرر أعلى', elite_upgrade: 'جنود النخبة' };
 const detail = c => c.type === 'weapon_upgrade' ? `+${c.value} LV` : c.type === 'elite_upgrade' ? `${Math.round(c.value * 100)}%` : `+${Math.round((c.value - 1) * 100)}%`;
-const kindOf = c => c.type === 'army_add' ? (c.value < 0 ? 'bad' : 'good') : c.type === 'army_multiply' ? 'good' : 'upgrade';
+const kindOf = c => c.type === 'army_add' ? (c.value < 0 ? 'bad' : 'good') : c.type === 'army_multiply' ? 'good' : c.type === 'weapon' ? 'weapon' : 'upgrade';
 export const POWER_LABELS = { freeze: '❄ تجميد', fire: '🔥 سهام نارية', shield: '🛡 درع', lightning: '⚡ صاعقة' };
-export const choiceLabel = c => c.type === 'army_add' ? (c.value < 0 ? `${c.value}` : `+${c.value}`) : c.type === 'power' ? POWER_LABELS[c.value] : c.type === 'coins' ? `💰 كنز` : gateLabel(c);
-const BARREL_COLORS = { freeze: '#5ab8ff', fire: '#ff6a2a', shield: '#59e0d0', lightning: '#a98cff', coins: '#f2c14e' };
+export const choiceLabel = c => c.type === 'army_add' ? (c.value < 0 ? `${c.value}` : `+${c.value}`) : c.type === 'power' ? POWER_LABELS[c.value] : c.type === 'coins' ? `💰 كنز` : c.type === 'weapon' ? `${WEAPON_KINDS[c.value].icon} ${WEAPON_KINDS[c.value].name}` : gateLabel(c);
+const BARREL_COLORS = { weapon: '#9a6cff', freeze: '#5ab8ff', fire: '#ff6a2a', shield: '#59e0d0', lightning: '#a98cff', coins: '#f2c14e' };
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
@@ -30,6 +32,7 @@ function drawPanel(ctx, choice) {
   const text = (value, size, y, width, dir = 'ltr') => { ctx.direction = dir; ctx.font = `${size}px ${GAME_FONT}`; ctx.lineWidth = width; ctx.strokeText(value, w / 2, y); ctx.fillText(value, w / 2, y); };
   if (choice.type === 'army_add') text(choiceLabel(choice), 124, h * 0.52, 16);
   else if (choice.type === 'army_multiply') { text(choiceLabel(choice), 104, h * 0.43, 16); text(TITLES[choice.type], 40, h * 0.82, 9, 'rtl'); }
+  else if (choice.type === 'weapon') { text(WEAPON_KINDS[choice.value].name, 70, h * 0.4, 12, 'rtl'); text('سلاح جديد', 40, h * 0.78, 9, 'rtl'); }
   else { text(TITLES[choice.type], 68, h * 0.4, 12, 'rtl'); text(detail(choice), 50, h * 0.78, 10); }
 }
 
