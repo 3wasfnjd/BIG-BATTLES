@@ -149,7 +149,7 @@ export class ArcadeEnvironment {
         b.add(cone, '#2b8f52', 0, 2.95, 0, 0.62, 1.0, 0.62); b.add(new THREE.SphereGeometry(1, 8, 6), '#f2c14e', 0, 3.5, 0, 0.13, 0.13, 0.13);
       }),
       banner: build(b => {
-        b.add(box, '#2fae5b', 0.8, 1.35, 0, 0.06, 1.6, 0.9); b.add(box, '#f2c14e', 0.84, 1.35, 0, 0.02, 1.2, 0.18);
+        b.add(box, '#2f78e0', 0.8, 1.35, 0, 0.06, 1.6, 0.9); b.add(box, '#f2c14e', 0.84, 1.35, 0, 0.02, 1.2, 0.18);
         b.add(box, '#f2c14e', 0.8, 2.18, 0, 0.1, 0.08, 1.0);
       }),
       pier: build(b => { b.add(stone, '#a99a84', 0, -1.2, 0, 2.6, 2.6, 2.6); b.add(stone, '#b8a992', 0, -0.2, 0, 2.2, 0.4, 2.2); }),

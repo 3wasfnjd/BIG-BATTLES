@@ -84,6 +84,17 @@ export class CharacterVisualFactory {
     const phase = clip.loop ? (clock % clip.duration) / clip.duration : Math.min(1, Math.max(0, clock) / clip.duration);
     return batch.frames[clip.frames[Math.min(clip.frames.length - 1, Math.floor(phase * clip.frames.length))]];
   }
+  // Swap the army's held weapon model (defence weapon rewards); poses stay the same.
+  setWeapon(weapon) {
+    if (!this.procedural || this.weapon === weapon) return;
+    this.weapon = weapon;
+    for (const type of ['commander', 'recruit', 'elite']) {
+      const batch = this.batches.get(type), model = this.procedural.model(type, weapon);
+      this.removeMeshes(batch);
+      batch.frames = model.frames.map(frame => ({ parts: frame.parts, count: 0 })); batch.clips = model.clips;
+      this.instantiateFrame(batch, batch.frames[0]);
+    }
+  }
   // Giants: wind-up raises the weapon, the strike lands at the start of the cooldown.
   giantFrame(batch, unit, time) {
     const def = this.definitions[unit.type], attack = batch.clips.attack;

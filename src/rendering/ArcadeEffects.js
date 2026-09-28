@@ -44,6 +44,13 @@ function flush(mesh, count) {
   if (mesh.instanceColor) { mesh.instanceColor.clearUpdateRanges(); mesh.instanceColor.addUpdateRange(0, count * 3); mesh.instanceColor.needsUpdate = true; }
 }
 
+const KIND_LOOK = {
+  arrow: { width: 1, length: 1 },
+  triple: { width: 0.9, length: 0.9, color: new THREE.Color('#ffe35a') },
+  rifle: { width: 0.45, length: 1.7, body: 1, color: new THREE.Color('#fff4b8'), halo: new THREE.Color('#ffe08a').multiplyScalar(0.5) },
+  magic: { width: 1.6, length: 0.85, body: 1.4, color: new THREE.Color('#56d0ff'), halo: new THREE.Color('#3aa8ff').multiplyScalar(0.8) },
+  cannon: { width: 1.7, length: 1.1, body: 1.3, color: new THREE.Color('#ff7a1a'), halo: new THREE.Color('#ff5a10').multiplyScalar(0.7) },
+};
 export class ArcadeEffects {
   constructor(scene) {
     this.dummy = new THREE.Object3D(); this.color = new THREE.Color();
@@ -69,6 +76,8 @@ export class ArcadeEffects {
     this.fill = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ff6a3a', transparent: true, opacity: 0.25, depthWrite: false }));
     for (const mesh of [this.ring, this.disc, this.fill]) { mesh.visible = false; mesh.renderOrder = 2; scene.add(mesh); }
     this.shake = 0;
+    this.orbs = instanced(new THREE.SphereGeometry(0.2, 12, 8), additive(glow), CONFIG.projectileCapacity, scene);
+    this.shells = instanced(new THREE.SphereGeometry(0.22, 12, 8), new THREE.MeshLambertMaterial({ color: '#2a2d36' }), CONFIG.projectileCapacity, scene);
     // Arrow rain: bolts falling from the sky. Lightning: vertical beams.
     this.skyBolts = instanced(this.bolts.geometry, this.bolts.material, 90, scene);
     this.skyTrails = instanced(this.trails.geometry, this.trails.material, 90, scene);
@@ -84,7 +93,7 @@ export class ArcadeEffects {
   hit(unit, died) {
     const effect = this.pool.acquire(); if (!effect) return;
     const big = unit.type === 'giantBoss' || unit.type === 'desertBeast' || (died && unit.type === 'barrel');
-    Object.assign(effect, { x: unit.x + (Math.random() - 0.5) * (big ? 1.2 : 0.2), z: unit.z, y: big ? 1 + Math.random() * 1.6 : 0.55, life: died ? 0.42 : 0.2, maxLife: died ? 0.42 : 0.2, team: unit.team, died, big, prop: !!unit.isProp, clash: false });
+    Object.assign(effect, { x: unit.x + (Math.random() - 0.5) * (big ? 1.2 : 0.2), z: unit.z, y: big ? 1 + Math.random() * 1.6 : 0.55, life: died ? 0.42 : 0.2, maxLife: died ? 0.42 : 0.2, team: unit.team, died, big, prop: !!unit.isProp, clash: false, blast: null });
     for (const spark of effect.sparks) {
       const a = Math.random() * Math.PI * 2, speed = (died ? 4.5 : 3) * (0.5 + Math.random());
       spark.vx = Math.cos(a) * speed; spark.vz = Math.sin(a) * speed; spark.vy = 1.5 + Math.random() * 2.5;
@@ -94,25 +103,41 @@ export class ArcadeEffects {
   // Melee clash where a walker hits the line: a white-gold burst with fast metal sparks.
   clash(x, z, big = false) {
     const effect = this.pool.acquire(); if (!effect) return;
-    Object.assign(effect, { x, z, y: 0.75, life: 0.34, maxLife: 0.34, team: 'clash', died: false, big, prop: false, clash: true });
+    Object.assign(effect, { x, z, y: 0.75, life: 0.34, maxLife: 0.34, team: 'clash', died: false, big, prop: false, clash: true, blast: null });
     for (const spark of effect.sparks) {
       const a = Math.random() * Math.PI * 2, speed = (big ? 8 : 6) * (0.6 + Math.random() * 0.6);
       spark.vx = Math.cos(a) * speed; spark.vz = Math.sin(a) * speed; spark.vy = 3 + Math.random() * 3;
     }
     if (big) this.shake = Math.max(this.shake, 0.35);
   }
+  // Splash impact: big coloured burst and dust ring (magic = blue, cannon = fire).
+  explosion(x, z, kind) {
+    const effect = this.pool.acquire(); if (!effect) return;
+    Object.assign(effect, { x, z, y: 0.6, life: 0.45, maxLife: 0.45, team: kind === 'magic' ? 'magic' : 'cannon', died: true, big: true, prop: false, clash: false, blast: kind });
+    for (const spark of effect.sparks) { const a = Math.random() * Math.PI * 2, speed = 5 + Math.random() * 4; spark.vx = Math.cos(a) * speed; spark.vz = Math.sin(a) * speed; spark.vy = 3 + Math.random() * 3; }
+    if (kind === 'cannon') this.shake = Math.max(this.shake, 0.18);
+  }
   update(projectiles, army, enemies, dt, time, camera) {
     const d = this.dummy;
     let count = 0;
+    // Each weapon kind has its own projectile: arrows, rifle tracers, magic orbs, cannon shells.
+    let arrows = 0, orbs = 0, shells = 0;
     for (const bullet of projectiles) {
-      const dx = bullet.tx - bullet.x, dz = -(bullet.tz - bullet.z), yaw = Math.atan2(dx, dz) + Math.PI;
-      d.position.set(bullet.x, bullet.y, -bullet.z); d.rotation.set(0, yaw, 0); d.scale.setScalar(1); d.updateMatrix();
-      this.bolts.setMatrixAt(count, d.matrix); this.trails.setMatrixAt(count, d.matrix); this.halos.setMatrixAt(count, d.matrix);
-      const color = bullet.fire ? this.colors.fire : this.colors[bullet.team];
-      this.trails.setColorAt(count, color); this.halos.setColorAt(count, bullet.fire ? this.colors.fireHalo : bullet.team === 'player' ? this.colors.halo : color); this.bolts.setColorAt(count, bullet.team === 'player' ? this.colors.playerHit : color);
+      const dx = bullet.tx - bullet.x, dz = -(bullet.tz - bullet.z), yaw = Math.atan2(dx, dz) + Math.PI, kind = bullet.kind;
+      let y = bullet.y;
+      if (kind === 'cannon' && bullet.startDist) { const t = 1 - Math.min(1, Math.hypot(dx, dz) / bullet.startDist); y += 4 * t * (1 - t) * Math.min(5, bullet.startDist * 0.28); }
+      const look = KIND_LOOK[kind] || KIND_LOOK.arrow;
+      d.position.set(bullet.x, y, -bullet.z); d.rotation.set(0, yaw, 0); d.scale.set(look.width, 1, look.length); d.updateMatrix();
+      this.trails.setMatrixAt(count, d.matrix); this.halos.setMatrixAt(count, d.matrix);
+      const color = bullet.fire ? this.colors.fire : bullet.team === 'player' && look.color ? look.color : this.colors[bullet.team];
+      this.trails.setColorAt(count, color); this.halos.setColorAt(count, bullet.fire ? this.colors.fireHalo : bullet.team === 'player' ? (look.halo || this.colors.halo) : color);
       count++;
+      d.scale.setScalar(look.body || 1); d.updateMatrix();
+      if (kind === 'magic') { this.orbs.setMatrixAt(orbs, d.matrix); this.orbs.setColorAt(orbs++, look.color); }
+      else if (kind === 'cannon') this.shells.setMatrixAt(shells++, d.matrix);
+      else if (kind !== 'rifle') { this.bolts.setMatrixAt(arrows, d.matrix); this.bolts.setColorAt(arrows++, bullet.team === 'player' ? this.colors.playerHit : color); }
     }
-    flush(this.bolts, count); flush(this.trails, count); flush(this.halos, count);
+    flush(this.bolts, arrows); flush(this.trails, count); flush(this.halos, count); flush(this.orbs, orbs); flush(this.shells, shells);
     // Muzzle flashes on shooters that just fired.
     count = 0;
     for (const roster of [army.units, enemies]) for (const unit of roster) {
@@ -128,13 +153,13 @@ export class ArcadeEffects {
     let flashes = 0, sparks = 0, puffs = 0;
     for (const e of this.pool.active) {
       const k = e.life / e.maxLife, age = e.maxLife - e.life;
-      const color = e.clash ? this.colors.clash : e.died ? (e.team === 'enemy' ? this.colors.death : this.colors.playerDeath) : e.team === 'enemy' ? this.colors.playerHit : this.colors.enemyHit;
+      const color = e.blast ? (e.blast === 'magic' ? KIND_LOOK.magic.color : KIND_LOOK.cannon.color) : e.clash ? this.colors.clash : e.died ? (e.team === 'enemy' ? this.colors.death : this.colors.playerDeath) : e.team === 'enemy' ? this.colors.playerHit : this.colors.enemyHit;
       d.position.set(e.x, e.y, -e.z); d.rotation.set(0, e.x * 7 + age * 6, 0);
       d.scale.setScalar((e.clash ? (e.big ? 3.4 : 2.4) : e.died ? 2.2 : e.big ? 1.6 : 1.1) * (0.4 + (1 - k) * 0.9) * (0.4 + k * 0.6)); d.updateMatrix();
       this.flashes.setMatrixAt(flashes, d.matrix); this.flashes.setColorAt(flashes++, color);
       if (e.died) {
-        d.position.set(e.x, 0.05, -e.z); d.rotation.set(0, 0, 0); d.scale.setScalar((e.big ? 3.2 : 0.9) * (0.3 + (1 - k) * 1.1)); d.updateMatrix();
-        this.puffs.setMatrixAt(puffs, d.matrix); this.puffs.setColorAt(puffs++, this.color.copy(e.prop ? this.dust.prop : this.dust[e.team] || this.dust.enemy).multiplyScalar(k));
+        d.position.set(e.x, 0.05, -e.z); d.rotation.set(0, 0, 0); d.scale.setScalar((e.blast === 'magic' ? 1.5 : e.blast === 'cannon' ? 2.3 : e.big ? 3.2 : 0.9) * (0.3 + (1 - k) * 1.1)); d.updateMatrix();
+        this.puffs.setMatrixAt(puffs, d.matrix); this.puffs.setColorAt(puffs++, this.color.copy(e.blast ? (e.blast === 'magic' ? KIND_LOOK.magic.color : KIND_LOOK.cannon.color) : e.prop ? this.dust.prop : this.dust[e.team] || this.dust.enemy).multiplyScalar(k));
       }
       for (const s of e.sparks) {
         d.position.set(e.x + s.vx * age, Math.max(0.05, e.y + s.vy * age - 9 * age * age), -e.z + s.vz * age);
@@ -175,7 +200,7 @@ export class ArcadeEffects {
   takeShake() { const s = this.shake; this.shake = 0; return s; }
   clear() {
     this.pool.clear(true);
-    for (const mesh of [this.bolts, this.trails, this.halos, this.muzzles, this.flashes, this.sparks, this.puffs, this.skyBolts, this.skyTrails, this.beams]) flush(mesh, 0);
+    for (const mesh of [this.orbs, this.shells, this.bolts, this.trails, this.halos, this.muzzles, this.flashes, this.sparks, this.puffs, this.skyBolts, this.skyTrails, this.beams]) flush(mesh, 0);
     this.falling.length = 0; this.strikes.length = 0;
     for (const mesh of [this.ring, this.disc, this.fill]) mesh.visible = false;
   }

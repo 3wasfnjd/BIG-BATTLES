@@ -4,7 +4,7 @@ export class ProjectileSystem {
   constructor(onHit) { this.pool = new ObjectPool(CONFIG.projectileCapacity, () => ({})); this.onHit = onHit; this.shots = 0; this.hits = 0; }
   fire(unit, target) {
     const bullet = this.pool.acquire(); if (!bullet) return false;
-    Object.assign(bullet, { x: unit.x, z: unit.z, y: 0.7, tx: target.x, tz: target.z, target, team: unit.team, damage: unit.damage, speed: unit.projectileSpeed, life: 2 });
+    Object.assign(bullet, { kind: null, splash: 0, fire: false, x: unit.x, z: unit.z, y: 0.7, tx: target.x, tz: target.z, target, team: unit.team, damage: unit.damage, speed: unit.projectileSpeed, life: 2 });
     target.incomingDamage += unit.damage; this.shots++;
     return true;
   }
@@ -21,6 +21,7 @@ export class ProjectileSystem {
           this.hits++;
           const died = bullet.target.takeDamage(bullet.damage);
           this.onHit?.(bullet.target, died);
+          if (bullet.splash) this.onSplash?.(bullet);
         }
         this.pool.releaseAt(i);
       } else if (bullet.life <= 0) { this.unreserve(bullet); this.pool.releaseAt(i); }

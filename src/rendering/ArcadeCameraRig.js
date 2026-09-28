@@ -3,6 +3,8 @@ import { ease } from '../core/Config.js';
 // Steep, close arcade framing: the army sits in the lower third and the fight ahead fills
 // the rest of the screen. Visual only; gameplay coordinates are unchanged.
 export const ARCADE_PITCH = 54 * Math.PI / 180;
+// Fixed defence camera: frames a 6-row army and most of the road width at the line.
+export const FIXED_DEPTH = 3.6, FIXED_HALF_WIDTH = 4.9;
 export const ARCADE_FOV = 44;
 const SIN = Math.sin(ARCADE_PITCH), COS = Math.cos(ARCADE_PITCH), TAN = Math.tan(ARCADE_FOV / 2 * Math.PI / 180);
 
@@ -28,10 +30,18 @@ export function arcadeCameraPose(progress, depth, halfWidth, armyX, aspect, enem
 }
 
 export class ArcadeCameraRig {
-  constructor(camera, { ahead = 7.5 } = {}) { this.camera = camera; this.ahead = ahead; camera.fov = ARCADE_FOV; camera.far = 200; camera.updateProjectionMatrix(); this.reset(0); }
+  constructor(camera, { ahead = 7.5, fixed = false } = {}) { this.camera = camera; this.ahead = ahead; this.fixed = fixed; camera.fov = ARCADE_FOV; camera.far = 200; camera.updateProjectionMatrix(); this.reset(0); }
   reset(depth) { this.z = 0; this.depth = depth; this.distance = null; this.x = 0; this.shake = 0; }
   kick(amount) { this.shake = Math.max(this.shake, amount); }
   update(army, dt, enemies = []) {
+    if (this.fixed) {
+      // Fixed framing (reference art): never zooms or pans with the army; only shake moves it.
+      if (this.fixedAspect !== this.camera.aspect) { this.fixedAspect = this.camera.aspect; this.fixedPose = arcadeCameraPose(0, FIXED_DEPTH, FIXED_HALF_WIDTH, 0, this.camera.aspect, [], this.ahead); }
+      const pose = this.fixedPose; this.shake = Math.max(0, this.shake - dt * 2.5);
+      const jitter = this.shake * this.shake, sx = (Math.random() - 0.5) * jitter, sy = (Math.random() - 0.5) * jitter;
+      this.camera.position.set(pose.x + sx, pose.height + sy, pose.z); this.camera.lookAt(pose.targetX + sx * 0.5, pose.targetY, pose.targetZ);
+      return;
+    }
     this.z += (army.center.z - this.z) * ease(9, dt);
     this.x += (army.center.x - this.x) * ease(6, dt);
     this.depth += (army.depth - this.depth) * ease(army.depth > this.depth ? 12 : 2, dt);

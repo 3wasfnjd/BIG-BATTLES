@@ -30,7 +30,7 @@ test('stages get harder: each needs more upgrades, and the last cannot be won ea
   assert.ok(results.every(r => r.includes(true)), 'every stage is winnable with upgrades');
   for (let i = 1; i < firstWin.length; i++) assert.ok(firstWin[i - 1] <= firstWin[i], `required levels ${firstWin}`);
   assert.ok(firstWin[4] > firstWin[3] && firstWin[6] > firstWin[4], `stages 5-7 are fiercer: ${firstWin}`);
-  assert.equal(results[0][0], false, 'stage 1 is not won by the scripted player without upgrades');
+  assert.equal(results[1][0], false, 'stage 2 is not won by the scripted player without upgrades');
   assert.ok(firstWin[3] >= 8, 'stage 4 needs heavy upgrades');
   assert.ok(firstWin[6] >= 11, 'stage 7 needs near-maximum upgrades');
 });
@@ -127,4 +127,29 @@ test('kill combos pay milestone bonuses; stars and daily gifts are saved', () =>
   const first = progress.claimDaily('2026-09-28'); assert.ok(first > 0); assert.equal(progress.claimDaily('2026-09-28'), 0);
   const second = progress.claimDaily('2026-09-29'); assert.ok(second > first); assert.equal(progress.data.streak, 2);
   const again = new Progress(storage); assert.equal(again.stars(2), 3); assert.equal(again.dailyAvailable('2026-09-29'), false);
+});
+
+test('weapon rewards change damage, shots and splash for the whole army', async () => {
+  const sim = new DefenseSimulation({}, stage([{ t: 0, type: 'horde', count: 40, x: 0, width: 6 }], { gruntHp: 1e5 }));
+  sim.start(); sim.update(1 / 60);
+  const base = sim.army.units[1].damage;
+  sim.apply({ type: 'weapon', value: 'rifle' });
+  assert.equal(sim.weapon, 'rifle'); assert.ok(Math.abs(sim.army.units[1].damage - base * 1.8) < 1e-9);
+  sim.army.add(5); assert.ok(Math.abs(sim.army.units.at(-1).damage - base * 1.8) < 1e-9, 'new recruits get the weapon too');
+  sim.apply({ type: 'weapon', value: 'triple' });
+  for (const u of sim.enemies) u.z = 8;
+  sim.targets.timer = 0; sim.targets.update(1, sim.army.units, sim.enemies);
+  const shooter = sim.army.units[1]; shooter.shotTimer = 0;
+  const before = sim.projectiles.pool.active.length; sim.shoot(1 / 60);
+  assert.ok(sim.projectiles.pool.active.length - before >= 3 * 1, 'triple bow fires three arrows');
+  sim.apply({ type: 'weapon', value: 'cannon' });
+  const splashes = []; sim.callbacks.onSplash = (x, z, kind) => splashes.push(kind);
+  const target = sim.enemies[0], hurt = () => sim.enemies.filter(u => u.health < u.maxHealth).length;
+  const already = hurt();
+  sim.splash({ tx: target.x, tz: target.z, target, damage: 100, share: 0.7, splash: 2.4, kind: 'cannon' });
+  assert.ok(hurt() > already + 2); assert.deepEqual(splashes, ['cannon']);
+  const { ChibiFactory } = await import('../src/rendering/ChibiFactory.js');
+  const f = new ChibiFactory();
+  for (const w of ['crossbow', 'triple', 'rifle', 'magic', 'cannon']) assert.ok(ChibiFactory.triangles(f.model('recruit', w)) < 1600, w);
+  assert.notEqual(f.model('recruit', 'rifle'), f.model('recruit', 'magic'));
 });

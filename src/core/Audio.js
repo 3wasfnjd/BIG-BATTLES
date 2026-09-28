@@ -98,7 +98,20 @@ export class GameAudio {
     if (now - (this.last[name] ?? -1) < gap) return false;
     this.last[name] = now; return true;
   }
-  volley(count) { if (count > 0 && this.ready('volley', 0.09)) this.burst(this.sfx, this.ctx.currentTime, 0.16, Math.min(0.35, 0.06 + count * 0.008), 'bandpass', 2500, 1.4, 6500); }
+  volley(count, kind = 'crossbow') {
+    if (!(count > 0) || !this.ready('volley', kind === 'cannon' ? 0.16 : 0.09)) return;
+    const t = this.ctx.currentTime, v = Math.min(0.35, 0.06 + count * 0.008);
+    if (kind === 'rifle') { this.burst(this.sfx, t, 0.07, v * 1.4, 'highpass', 1800); this.sweep(this.sfx, 'square', 220, 70, t, 0.06, v * 0.6); }
+    else if (kind === 'magic') { this.sweep(this.sfx, 'sine', 900, 1800, t, 0.18, v * 0.7); this.burst(this.sfx, t, 0.12, v * 0.4, 'highpass', 6000); }
+    else if (kind === 'cannon') { this.sweep(this.sfx, 'sine', 140, 40, t, 0.35, Math.min(0.7, v * 2)); this.burst(this.sfx, t, 0.25, v * 1.2, 'lowpass', 700); }
+    else this.burst(this.sfx, t, 0.16, v, 'bandpass', 2500, 1.4, 6500);
+  }
+  blast(kind) {
+    if (!this.ready('blast', 0.07)) return;
+    const t = this.ctx.currentTime;
+    if (kind === 'magic') { this.tone(this.sfx, 'triangle', 1480, t, 0.2, 0.08, 6000); this.burst(this.sfx, t, 0.15, 0.12, 'bandpass', 4000, 2); }
+    else { this.burst(this.sfx, t, 0.35, 0.3, 'lowpass', 500); this.sweep(this.sfx, 'sine', 110, 35, t, 0.3, 0.35); }
+  }
   hit() { if (this.ready('hit', 0.04)) this.burst(this.sfx, this.ctx.currentTime, 0.035, 0.14, 'highpass', 2500 + Math.random() * 1500); }
   enemyArrow() { if (this.ready('enemyArrow', 0.12)) this.burst(this.sfx, this.ctx.currentTime, 0.2, 0.12, 'bandpass', 1400, 2, 600); }
   kill() { if (this.ready('kill', 0.05)) this.sweep(this.sfx, 'triangle', 360 + Math.random() * 80, 110, this.ctx.currentTime, 0.1, 0.16); }
@@ -145,7 +158,7 @@ export class GameAudio {
   rainImpact() { if (!this.ready('rainImpact', 0.5)) return; const t = this.ctx.currentTime; for (let i = 0; i < 8; i++) this.burst(this.sfx, t + i * 0.03, 0.12, 0.3, 'highpass', 1500 + Math.random() * 2000); this.drum(this.sfx, t, 1); }
   power(kind) {
     if (!this.ready('power', 0.2)) return;
-    const t = this.ctx.currentTime, scale = kind === 'freeze' ? [84, 88, 91, 96] : kind === 'fire' ? [62, 69, 74, 81] : kind === 'shield' ? [67, 71, 74, 79] : [76, 79, 83, 88];
+    const t = this.ctx.currentTime, scale = kind === 'weapon' ? [62, 66, 69, 74, 78] : kind === 'freeze' ? [84, 88, 91, 96] : kind === 'fire' ? [62, 69, 74, 81] : kind === 'shield' ? [67, 71, 74, 79] : [76, 79, 83, 88];
     scale.forEach((n, i) => this.tone(this.sfx, kind === 'fire' ? 'sawtooth' : 'triangle', midi(n), t + i * 0.06, 0.35, 0.16, 5000));
     if (kind === 'freeze') this.burst(this.sfx, t, 0.5, 0.15, 'highpass', 6000);
   }
