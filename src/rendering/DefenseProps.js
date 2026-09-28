@@ -11,7 +11,9 @@ const STYLE = {
 const TITLES = { army_multiply: 'ضعف الجيش', weapon_upgrade: 'سلاح أقوى', fire_rate: 'رمي أسرع', damage: 'ضرر أعلى', elite_upgrade: 'جنود النخبة' };
 const detail = c => c.type === 'weapon_upgrade' ? `+${c.value} LV` : c.type === 'elite_upgrade' ? `${Math.round(c.value * 100)}%` : `+${Math.round((c.value - 1) * 100)}%`;
 const kindOf = c => c.type === 'army_add' ? (c.value < 0 ? 'bad' : 'good') : c.type === 'army_multiply' ? 'good' : 'upgrade';
-export const choiceLabel = c => c.type === 'army_add' ? (c.value < 0 ? `${c.value}` : `+${c.value}`) : gateLabel(c);
+export const POWER_LABELS = { freeze: '❄ تجميد', fire: '🔥 سهام نارية', shield: '🛡 درع', lightning: '⚡ صاعقة' };
+export const choiceLabel = c => c.type === 'army_add' ? (c.value < 0 ? `${c.value}` : `+${c.value}`) : c.type === 'power' ? POWER_LABELS[c.value] : c.type === 'coins' ? `💰 كنز` : gateLabel(c);
+const BARREL_COLORS = { freeze: '#5ab8ff', fire: '#ff6a2a', shield: '#59e0d0', lightning: '#a98cff', coins: '#f2c14e' };
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
@@ -59,11 +61,13 @@ export class DefenseProps {
     this.scene.add(group);
     const item = { group, panels, usedAt: -1 }; this.rows.set(row, item); return item;
   }
-  makeBarrel() {
-    const group = new THREE.Group();
-    const body = new THREE.Mesh(this.barrelBody, this.woodMaterial); body.position.y = 0.55; body.castShadow = true; group.add(body);
+  makeBarrel(reward) {
+    const group = new THREE.Group(), tint = BARREL_COLORS[reward.type === 'power' ? reward.value : reward.type];
+    this.tinted ??= {};
+    const material = tint ? (this.tinted[tint] ??= new THREE.MeshLambertMaterial({ color: tint, emissive: tint, emissiveIntensity: 0.35 })) : this.woodMaterial;
+    const body = new THREE.Mesh(this.barrelBody, material); body.position.y = 0.55; body.castShadow = true; group.add(body);
     for (const y of [0.2, 0.9]) { const hoop = new THREE.Mesh(this.hoop, this.hoopMaterial); hoop.position.y = y; group.add(hoop); }
-    if (this.soldierParts) for (const x of [-0.28, 0.28]) for (const part of this.soldierParts) {
+    if (this.soldierParts && reward.type === 'army_add') for (const x of [-0.28, 0.28]) for (const part of this.soldierParts) {
       const soldier = new THREE.Mesh(part.geometry, part.material); soldier.position.set(x, 1.1, 0); soldier.scale.setScalar(0.95); soldier.rotation.y = Math.PI; group.add(soldier);
     }
     this.scene.add(group); return { group, body };
@@ -95,7 +99,8 @@ export class DefenseProps {
     for (const barrel of sim.barrels) {
       if (!barrel.alive) continue;
       alive.add(barrel);
-      const item = this.barrels.get(barrel) || (this.barrels.set(barrel, this.makeBarrel()), this.barrels.get(barrel));
+      const item = this.barrels.get(barrel) || (this.barrels.set(barrel, this.makeBarrel(barrel.reward)), this.barrels.get(barrel));
+      if (item.body.material !== this.woodMaterial) item.body.rotation.y += dt * 1.5;
       const shake = barrel.hitTime > 0 ? Math.sin(barrel.hitTime * 120) * 0.06 : 0;
       item.group.position.set(barrel.x + shake, 0, -barrel.z);
     }

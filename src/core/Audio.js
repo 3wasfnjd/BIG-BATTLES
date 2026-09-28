@@ -131,7 +131,7 @@ export class GameAudio {
     this.burst(this.sfx, t, 1.2, 0.35, 'lowpass', 500);
   }
   breach() { if (!this.ready('breach', 0.25)) return; const t = this.ctx.currentTime; this.sweep(this.sfx, 'square', 180, 60, t, 0.35, 0.3); this.tone(this.sfx, 'sawtooth', 220, t + 0.05, 0.3, 0.12, 900); }
-  thunder() { if (!this.ready('thunder', 1)) return; const t = this.ctx.currentTime; this.burst(this.sfx, t, 0.25, 0.6, 'highpass', 1500); this.burst(this.sfx, t + 0.05, 2.4, 0.8, 'lowpass', 260, 0.7, 60); }
+  thunder(near = false) { if (!this.ready('thunder', near ? 0.3 : 1)) return; const t = this.ctx.currentTime; this.burst(this.sfx, t, 0.25, 0.6, 'highpass', 1500); this.burst(this.sfx, t + 0.05, 2.4, 0.8, 'lowpass', 260, 0.7, 60); }
   fanfare(victory) {
     if (!this.enabled) return;
     const t = this.ctx.currentTime + 0.05, notes = victory ? [62, 66, 69, 74, 74, 78] : [62, 60, 57, 50];
@@ -141,5 +141,14 @@ export class GameAudio {
     });
     if (victory) this.drum(this.sfx, t, 1);
   }
+  rainStart() { if (!this.ready('rain', 0.5)) return; const t = this.ctx.currentTime; for (let i = 0; i < 6; i++) this.burst(this.sfx, t + i * 0.06, 0.35, 0.18, 'bandpass', 3000, 1.2, 900); }
+  rainImpact() { if (!this.ready('rainImpact', 0.5)) return; const t = this.ctx.currentTime; for (let i = 0; i < 8; i++) this.burst(this.sfx, t + i * 0.03, 0.12, 0.3, 'highpass', 1500 + Math.random() * 2000); this.drum(this.sfx, t, 1); }
+  power(kind) {
+    if (!this.ready('power', 0.2)) return;
+    const t = this.ctx.currentTime, scale = kind === 'freeze' ? [84, 88, 91, 96] : kind === 'fire' ? [62, 69, 74, 81] : kind === 'shield' ? [67, 71, 74, 79] : [76, 79, 83, 88];
+    scale.forEach((n, i) => this.tone(this.sfx, kind === 'fire' ? 'sawtooth' : 'triangle', midi(n), t + i * 0.06, 0.35, 0.16, 5000));
+    if (kind === 'freeze') this.burst(this.sfx, t, 0.5, 0.15, 'highpass', 6000);
+  }
+  combo(count) { if (!this.ready('combo', 0.2)) return; const t = this.ctx.currentTime, base = 72 + Math.min(12, Math.floor(count / 25) * 2); [0, 4, 7, 12].forEach((d, i) => this.tone(this.sfx, 'square', midi(base + d), t + i * 0.05, 0.18, 0.08, 4000)); }
   click() { if (this.ready('click', 0.05)) this.tone(this.sfx, 'triangle', 880, this.ctx.currentTime, 0.06, 0.12); }
 }

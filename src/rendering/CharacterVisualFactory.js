@@ -120,7 +120,7 @@ export class CharacterVisualFactory {
     } else {
       const frame = this.frameFor(batch, unit, time, deathTime); if (!frame) return;
       this.instantiateFrame(batch, frame);
-      for (const mesh of frame.meshes) { mesh.setMatrixAt(frame.count, this.dummy.matrix); mesh.setColorAt(frame.count, unit.hitTime > 0 ? (batch.hero ? this.softFlash : this.flash) : this.white); }
+      for (const mesh of frame.meshes) { mesh.setMatrixAt(frame.count, this.dummy.matrix); mesh.setColorAt(frame.count, unit.hitTime > 0 ? (batch.hero ? this.softFlash : this.flash) : unit.team === 'enemy' && this.enemyTint ? this.enemyTint : this.white); }
       frame.count++;
     }
     batch.count++;

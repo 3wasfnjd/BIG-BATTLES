@@ -1,6 +1,6 @@
 // Plays every defence stage with a scripted left/right policy at several upgrade budgets.
 // This measures difficulty for tuning; it is not a prediction of human win rates.
-import { DefenseSimulation } from '../src/core/DefenseSimulation.js';
+import { DefenseSimulation, ENERGY_MAX } from '../src/core/DefenseSimulation.js';
 import { DEFENSE_STAGES } from '../src/data/defenseStages.js';
 
 export function botTarget(sim) {
@@ -23,6 +23,7 @@ export function play(stage, levels = {}, policy = botTarget) {
   const sim = new DefenseSimulation({}, stage, levels); sim.start();
   for (let tick = 0; tick < 60 * 240 && sim.state === 'playing'; tick++) {
     if (tick % 15 === 0) sim.army.targetX = policy(sim);
+    if (sim.energy >= ENERGY_MAX) sim.useRain();
     sim.update(1 / 60);
   }
   return sim;
