@@ -59,8 +59,8 @@ body.arcade .preview-top h2{font-family:'Lalezar',sans-serif;font-weight:400;-we
 .coin-line{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;background:#0f3550cc;border-radius:16px;font-family:'Lilita One','Arial Black',sans-serif;font-size:24px;direction:ltr}
 .coin-line b{font-weight:400;color:#ffe27a}
 #defense-menu{pointer-events:auto;margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:12px}
-#stage-picker{display:flex;gap:10px;justify-content:center}
-#stage-picker button{width:58px;height:58px;border-radius:16px;border:3px solid #0f3550;background:#fff;color:#0f3550;font-family:'Lilita One','Arial Black',sans-serif;font-size:28px;box-shadow:0 4px 0 #0f3550}
+#stage-picker{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;justify-content:center;width:min(100%,300px)}
+#stage-picker button{width:100%;height:46px;border-radius:11px;border:2px solid #0f3550;background:#fff;color:#0f3550;font-family:'Lilita One','Arial Black',sans-serif;font-size:21px;box-shadow:0 3px 0 #0f3550;padding:0 0 7px}
 #stage-picker button[aria-pressed=true]{background:linear-gradient(#ffe27a,#f5a623);transform:translateY(-3px)}
 #stage-picker button:disabled{background:#8aa0b0;color:#e9eef2;opacity:.8;cursor:not-allowed}
 #open-upgrades,#result-upgrades,#next-stage,#close-upgrades{font-family:'Lalezar',sans-serif;font-size:22px;padding:8px 26px 11px;border:3px solid #0f3550;border-radius:16px;box-shadow:0 4px 0 #0f3550;background:#fff;color:#0f3550;pointer-events:auto;margin:6px}
@@ -139,9 +139,9 @@ body.defense #hud .sound-toggle,body.defense #pause{width:40px;height:40px;font-
 #result-stars i:nth-child(2){animation-delay:.25s!important;transform:translateY(-10px)}
 #result-stars i:nth-child(3){animation-delay:.5s!important}
 @keyframes star-pop{0%{transform:scale(0) rotate(-40deg)}100%{transform:scale(1) rotate(0)}}
-#stage-picker{flex-wrap:wrap;max-width:330px}
-#stage-picker button{position:relative;height:64px}
-#stage-picker button small{position:absolute;left:0;right:0;bottom:2px;font-size:13px;letter-spacing:0;color:#f5a623;-webkit-text-stroke:0;line-height:1}
+#stage-picker button{position:relative}
+#stage-picker button:disabled{padding-bottom:0}
+#stage-picker button small{position:absolute;left:0;right:0;bottom:2px;font-size:10px;letter-spacing:0;color:#b57504;-webkit-text-stroke:0;line-height:1}
 #daily-gift{font-family:'Lalezar',sans-serif;font-size:21px;padding:7px 22px 10px;border:3px solid #5a1a40;border-radius:16px;box-shadow:0 4px 0 #5a1a40;background:linear-gradient(#ff8fd0,#d8408c);color:#fff;text-shadow:0 2px 0 #5a1a40;pointer-events:auto;animation:rain-ready 1.2s ease-in-out infinite}
 #banner.weapon b{background:linear-gradient(90deg,transparent,#4a1a9ae6 18%,#4a1a9ae6 82%,transparent);-webkit-text-stroke-color:#1a0640;text-shadow:0 4px 0 #1a0640}
 /* Extra abilities stacked above arrow rain. */
@@ -157,7 +157,7 @@ body.defense #hud .sound-toggle,body.defense #pause{width:40px;height:40px;font-
 .ability.ready::after{background:linear-gradient(#8fd0ff,#2f78e0)}
 
 /* BIG BATTLES poster start screen — visual only; gameplay remains unchanged. */
-#start{isolation:isolate;background:#101827}
+#start{isolation:isolate;background:#101827;justify-content:flex-end;padding:calc(16px + env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom))}
 #start>.start-poster{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:#101827}
 /* Fit the whole poster; its physical left/right tile order is independent of Arabic UI direction. */
 #start>.start-poster .start-poster-grid{position:absolute;left:50%;top:0;width:min(100%,calc(100vh * 2 / 3));width:min(100%,calc(100dvh * 2 / 3));aspect-ratio:2/3;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));transform:translateX(-50%);font-size:0;line-height:0;direction:ltr}
@@ -173,4 +173,18 @@ body.defense #hud .sound-toggle,body.defense #pause{width:40px;height:40px;font-
 
 #start::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,#07101b1f 0%,#07101b0a 42%,#07101ba8 100%)}
 #start>.brand,#start>.start-prompt{position:relative;z-index:2}
-#start>.brand{visibility:hidden}
+#start>.brand{position:absolute;top:0;visibility:hidden}
+#start>.start-prompt{width:min(100%,330px)}
+#start #defense-menu{width:100%;margin-top:0;gap:8px}
+.menu-stage-heading{display:flex;align-items:center;justify-content:space-between;width:min(100%,300px);font-family:'Lalezar',Arial,sans-serif;font-size:20px;color:#e4edf0;text-shadow:0 2px 4px #07101b}
+.menu-stage-heading .coin-line{font-size:18px;padding:3px 9px;gap:5px;background:#101827b3;border-radius:10px}
+.menu-stage-heading .coin{width:16px;height:16px}
+#start .menu-row{justify-content:center;gap:6px;margin-top:3px}
+#start #open-upgrades,#start #daily-gift{min-height:40px;margin:0;padding:5px 12px 7px;font-size:16px;border-width:2px;border-radius:11px;box-shadow:0 3px 0 #0f3550;animation:none}
+#start #menu-sound{width:40px;height:40px;border-width:2px;border-radius:11px;box-shadow:0 3px 0 #0f3550;font-size:18px}
+#start-game{display:flex;align-items:center;justify-content:center;gap:12px;width:min(100%,310px);min-height:60px;margin:14px auto 10px;padding:8px 22px;font-family:'Lalezar',Arial,sans-serif;font-size:32px;line-height:1.1;font-weight:400;color:#273514;background:linear-gradient(#fff2a1,#ffd14f 48%,#f3ad24);border:3px solid #fff2bd;border-radius:18px;box-shadow:0 5px 0 #946313,0 9px 24px #f7b83145;pointer-events:auto;transition:transform .15s,box-shadow .15s}
+#start-game svg{width:27px;height:27px;fill:currentColor;flex:none}
+#start-game:not(:disabled):active{transform:translateY(3px);box-shadow:0 2px 0 #946313,0 4px 12px #f7b83145}
+#start-game:disabled{opacity:.55;cursor:wait;box-shadow:0 3px 0 #946313}
+#start>.start-prompt>span{display:block;font-size:13px;line-height:1.4;color:#d8e4e9}
+@media(max-height:500px){#start{padding-top:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom))}#start #defense-menu{gap:5px}#start-game{min-height:52px;margin-top:9px;font-size:29px}}

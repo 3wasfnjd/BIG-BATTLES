@@ -9,6 +9,8 @@ try {
   }
 } catch (error) {
   console.error('BIG BATTLES could not start', error);
+  document.getElementById('load-status').hidden = false;
+  document.getElementById('start-game').disabled = true;
   document.getElementById('load-status').textContent = /WebGL|context/i.test(error.message)
     ? 'العرض ثلاثي الأبعاد غير متاح في هذا المتصفح.'
     : 'تعذّر تحميل اللعبة. أعد تحميل الصفحة.';

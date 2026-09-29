@@ -22,7 +22,7 @@ import { clamp } from './Config.js';
 export class Game {
   constructor() {
     const $ = id => document.getElementById(id);
-    this.ui = Object.fromEntries(['game', 'scene', 'hud', 'start', 'result', 'result-title', 'result-note', 'army-count', 'progress', 'pause', 'paused', 'replay', 'boss-ui', 'boss-health', 'gate-feedback', 'debug', 'preview-soldier', 'soldier-preview', 'preview-back', 'preview-status', 'army-tag', 'horde-tag', 'giant-tag'].map(id => [id, $(id)]));
+    this.ui = Object.fromEntries(['game', 'scene', 'hud', 'start', 'start-game', 'result', 'result-title', 'result-note', 'army-count', 'progress', 'pause', 'paused', 'replay', 'boss-ui', 'boss-health', 'gate-feedback', 'debug', 'preview-soldier', 'soldier-preview', 'preview-back', 'preview-status', 'army-tag', 'horde-tag', 'giant-tag'].map(id => [id, $(id)]));
     this.debug = new URLSearchParams(location.search).get('debug') === '1';
     this.profile = visualProfile(location.search);
     if (this.debug && new URLSearchParams(location.search).get('portrait') === '1') document.body.classList.add('dev-portrait');
@@ -58,6 +58,7 @@ export class Game {
       return this.sim.army.targetX;
     }, () => this.sim.army.targetX);
     this.ui.pause.addEventListener('click', () => this.pause());
+    this.ui['start-game'].addEventListener('click', event => { event.stopPropagation(); this.startOrResume(); });
     this.ui.replay.addEventListener('click', event => { event.stopPropagation(); this.replay(); });
     this.ui.paused.addEventListener('click', () => this.startOrResume());
     this.bindPreview();
@@ -68,7 +69,8 @@ export class Game {
     this.ui.scene.addEventListener('webglcontextlost', event => { event.preventDefault(); this.contextLost = true; this.pause(); this.ui.paused.querySelector('p').textContent = 'توقف العرض مؤقتًا'; });
     this.ui.scene.addEventListener('webglcontextrestored', () => { this.contextLost = false; this.loop.resetClock(); this.ui.paused.querySelector('p').textContent = 'المس للمتابعة'; });
     this.resize(); this.loop = new GameLoop(dt => this.sim.update(dt), (dt, raw) => this.render(dt, raw));
-    $('load-status').textContent = 'المس للبدء'; $('load-line').hidden = true;
+    $('load-status').hidden = true; $('load-line').hidden = true;
+    this.ui['start-game'].disabled = false;
     if (this.profile.quality) {
       document.title = 'BIG BATTLES · تجربة الجودة';
       this.ui.start.querySelector('.start-prompt > span').textContent = 'تجربة بصرية • الشخصيات قيد التطوير';
