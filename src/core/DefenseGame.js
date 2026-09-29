@@ -38,7 +38,7 @@ export class DefenseGame {
     const $ = id => document.getElementById(id);
     this.ui = Object.fromEntries(['game', 'scene', 'hud', 'start', 'result', 'result-title', 'result-note', 'result-coins', 'army-count', 'progress', 'pause', 'paused', 'replay', 'gate-feedback', 'debug',
       'army-tag', 'giant-tag', 'horde-tag', 'base-meter', 'base-hp', 'stage-label', 'defense-menu', 'menu-coins', 'stage-picker', 'open-upgrades', 'upgrades', 'upgrade-coins', 'upgrade-list',
-      'close-upgrades', 'result-upgrades', 'next-stage', 'breach-flash', 'barrel-tags', 'load-status', 'load-line', 'float-layer', 'banner', 'confetti', 'lightning', 'sound', 'menu-sound', 'frost', 'powers', 'combo', 'rain-btn', 'giants-btn', 'cannons-btn', 'result-stars', 'daily-gift'].map(id => [id, $(id)]));
+      'close-upgrades', 'result-upgrades', 'next-stage', 'breach-flash', 'barrel-tags', 'load-status', 'load-line', 'start-game', 'float-layer', 'banner', 'confetti', 'lightning', 'sound', 'menu-sound', 'frost', 'powers', 'combo', 'rain-btn', 'giants-btn', 'cannons-btn', 'result-stars', 'daily-gift'].map(id => [id, $(id)]));
     this.debug = new URLSearchParams(location.search).get('debug') === '1';
     this.ui.debug.hidden = !this.debug;
     document.body.classList.add('arcade', 'defense');
@@ -112,6 +112,7 @@ export class DefenseGame {
       return this.sim.army.targetX;
     }, () => this.sim.army.targetX);
     const click = (id, handler) => this.ui[id].addEventListener('click', event => { event.stopPropagation(); handler(); });
+    click('start-game', () => this.startOrResume());
     click('pause', () => this.pause());
     click('rain-btn', () => this.sim.useRain());
     click('giants-btn', () => this.sim.useGiants());
@@ -132,7 +133,8 @@ export class DefenseGame {
     this.ui.scene.addEventListener('webglcontextlost', event => { event.preventDefault(); this.pause(); });
 
     this.ui['defense-menu'].hidden = false;
-    this.ui['load-status'].textContent = 'المس للبدء'; this.ui['load-line'].hidden = true;
+    this.ui['load-status'].hidden = true; this.ui['load-line'].hidden = true;
+    this.ui['start-game'].disabled = false;
     this.ui.start.querySelector('.start-prompt > span').textContent = 'اسحب يمينًا ويسارًا • احمِ القلعة';
     this.renderMenu();
     this.resize(); this.loop = new GameLoop(dt => this.sim.update(dt), (dt, raw) => this.render(dt, raw)); this.loop.start();
