@@ -185,3 +185,12 @@ test('giants and artillery abilities: charged by kills, then fight on the army\'
   for (let i = 0; i < 25; i++) sim.registerKill({ type: 'enemyBrute' });
   assert.ok(sim.giantEnergy > 0 && sim.cannonEnergy > 0);
 });
+
+test('arrows fly only while the player holds the screen', () => {
+  const sim = new DefenseSimulation({}, stage([{ t: 0, type: 'horde', count: 20, x: 0 }], { gruntHp: 1e6 }));
+  sim.start(); sim.update(1 / 60); for (const u of sim.enemies) u.z = 10;
+  sim.holding = false; for (let i = 0; i < 60; i++) sim.update(1 / 60);
+  assert.equal(sim.projectiles.shots, 0);
+  sim.holding = true; for (let i = 0; i < 30; i++) sim.update(1 / 60);
+  assert.ok(sim.projectiles.shots > 5, 'soldiers fire as soon as the player presses');
+});
