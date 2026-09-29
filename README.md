@@ -4,6 +4,12 @@
 
 A lightweight, original Saudi-inspired chibi crowd runner using vanilla ES modules and Three.js. Touch once, drag left/right; movement forward, targeting and combat are automatic. One stage, no account/backend/shop, joystick, shooting button or gameplay menus.
 
+## لمّتنا — صالة المرح (Lammatna, new family game) — 2026-09-29
+
+A separate Babylon.js family playground game lives in [`lammatna/`](lammatna/README.md) and is served at `/lammatna/`. It includes five simplified, replaceable characters, touch controls, private rooms (Node WebSocket server), swings, a slide, Playground Race and Ball Rescue.
+
+![Lammatna](lammatna/docs/playground.jpg)
+
 ## Defence mode (Mob Control style) — 2026-09-28 (default)
 
 The game now plays like Mob Control: **your army holds its line and only slides left/right**. Enemy hordes, gates, barrels and giants come toward it. The earlier forward runner is kept at `?mode=runner`.

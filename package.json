@@ -4,15 +4,23 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tools/release.mjs --check && node --test tests/*.test.js",
+    "test": "node tools/release.mjs --check && node lammatna/tools/build.mjs --check && node --test tests/*.test.js",
     "benchmark": "node tools/benchmark.mjs",
     "models": "node tools/generate-models.mjs && node tools/art/package-recruit.mjs",
     "models:quality": "node tools/art/package-recruit.mjs --quality",
     "serve": "python3 -m http.server 8080",
     "vendor": "node tools/vendor.mjs",
-    "release": "node tools/release.mjs"
+    "release": "node tools/release.mjs",
+    "lammatna:build": "node lammatna/tools/build.mjs",
+    "lammatna:server": "node lammatna/server/server.mjs"
   },
   "dependencies": {
-    "three": "0.180.0"
+    "@babylonjs/core": "^9.28.0",
+    "@babylonjs/loaders": "^9.28.0",
+    "three": "0.180.0",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }
