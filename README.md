@@ -78,6 +78,7 @@ The game now plays like Mob Control: **your army holds its line and only slides 
 
 ![Giants and artillery](docs/defense/abilities.jpg)
 
+- **Hold to shoot** (added 2026-09-29): soldiers fire only while the player keeps a finger (or the mouse button) on the screen. Dragging steers as before, and lifting the finger stops the arrows and shows a "hold to shoot" hint. Abilities and enemy archers are unaffected.
 - **Clash effects**: when a walker reaches the line, a white-gold burst with fast metal sparks appears, and a brute adds a camera kick.
 - **Feedback effects**: damage numbers over giants, coin pop-ups for brutes and giants, dust rings where units fall, bigger barrel bursts, a glowing ring under the commander, stage/wave/boss announcement banners with camera kick, a themed vignette and victory confetti.
 - Also fixed: a stage could end as a victory while a gate or barrel was still approaching.

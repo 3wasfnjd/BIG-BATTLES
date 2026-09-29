@@ -79,6 +79,8 @@ export class DefenseSimulation {
     for (const unit of this.army.units) this.army.applyWeapon(unit);
     this.base = { hp: stage.baseHp + this.perks.fort, maxHp: stage.baseHp + this.perks.fort };
     this.peakArmy = this.army.count;
+    // Arrows fly only while the player holds the screen (the game sets this from touch input).
+    this.holding = true;
     this.energy = 0; this.giantEnergy = 0; this.cannonEnergy = 0; this.allies = []; this.turrets = []; this.rain = null; this.powers = { freeze: 0, fire: 0, shield: 0 }; this.combo = { count: 0, timer: 0, best: 0 };
     this.enemies = []; this.gates = []; this.barrels = []; this.props = []; this.targetables = []; this.archers = [];
     this.movement = new MovementSystem(); this.targets = new TargetSystem(); this.enemyAI = new EnemySystem((unit, died) => this.hit(unit, died)); this.bossAI = new BossSystem(this);
@@ -261,6 +263,7 @@ export class DefenseSimulation {
       if (!unit.alive) continue;
       unit.shotFlash = Math.max(0, unit.shotFlash - dt);
       unit.shotTimer -= dt;
+      if (!this.holding) { unit.shotTimer = Math.max(0, unit.shotTimer); unit.state = unit.shotFlash > 0 ? 'shoot' : unit.moving ? 'run' : 'idle'; continue; }
       unit.state = unit.shotFlash > 0 ? 'shoot' : unit.moving ? 'run' : 'idle';
       if (unit.shotTimer > 0) continue;
       const target = this.targets.select(unit) || this.propTarget(unit);
