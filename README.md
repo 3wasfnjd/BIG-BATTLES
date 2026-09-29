@@ -78,7 +78,7 @@ The game now plays like Mob Control: **your army holds its line and only slides 
 
 ![Giants and artillery](docs/defense/abilities.jpg)
 
-- **Firing** (2026-09-29): from the first tap, soldiers fire nonstop whether or not anything is in range. Arrows with no target fly straight ahead to the end of their range and vanish without damage. The player only steers. A brief hold-to-shoot experiment was reverted at the owner's request.
+- **Firing** (2026-09-29): back to the original behaviour: soldiers fire automatically at enemies (then barrels and gates) in range; the player only steers. The hold-to-shoot and fire-with-no-target experiments were reverted at the owner's request.
 - **Clash effects**: when a walker reaches the line, a white-gold burst with fast metal sparks appears, and a brute adds a camera kick.
 - **Feedback effects**: damage numbers over giants, coin pop-ups for brutes and giants, dust rings where units fall, bigger barrel bursts, a glowing ring under the commander, stage/wave/boss announcement banners with camera kick, a themed vignette and victory confetti.
 - Also fixed: a stage could end as a victory while a gate or barrel was still approaching.
