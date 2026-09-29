@@ -155,9 +155,3 @@ body.defense #hud .sound-toggle,body.defense #pause{width:40px;height:40px;font-
 .ability small{font-family:'Lalezar',sans-serif;font-size:11px;color:#fff}
 .ability.ready{animation:rain-ready .9s ease-in-out infinite}
 .ability.ready::after{background:linear-gradient(#8fd0ff,#2f78e0)}
-/* Hold-to-shoot hint while the finger is lifted. */
-#hold-hint{position:absolute;left:50%;top:48%;transform:translateX(-50%);z-index:2;pointer-events:none;font-family:'Lalezar',sans-serif;font-size:22px;color:#fff;background:#0f3550d9;border:3px solid #fff;border-radius:18px;padding:6px 18px 9px;white-space:nowrap;opacity:0;transition:opacity .2s}
-#hold-hint.show{opacity:1;animation:hold-pulse 1s ease-in-out infinite}
-#hold-hint span{display:inline-block;animation:hold-tap 1s ease-in-out infinite}
-@keyframes hold-pulse{50%{transform:translateX(-50%) scale(1.06)}}
-@keyframes hold-tap{50%{transform:translateY(6px)}}
