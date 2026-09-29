@@ -4,11 +4,9 @@
 
 A lightweight, original Saudi-inspired chibi crowd runner using vanilla ES modules and Three.js. Touch once, drag left/right; movement forward, targeting and combat are automatic. One stage, no account/backend/shop, joystick, shooting button or gameplay menus.
 
-## لمّتنا — صالة المرح (Lammatna, new family game) — 2026-09-29
+## لمّتنا — صالة المرح (Lammatna)
 
-A separate Babylon.js family playground game lives in [`lammatna/`](lammatna/README.md) and is served at `/lammatna/`. It includes five simplified, replaceable characters, touch controls, private rooms (Node WebSocket server), swings, a slide, Playground Race and Ball Rescue.
-
-![Lammatna](lammatna/docs/playground.jpg)
+The Babylon.js family playground game moved to its own repository: [3wasfnjd/lammatna](https://github.com/3wasfnjd/lammatna) (https://3wasfnjd.github.io/lammatna/).
 
 ## Defence mode (Mob Control style) — 2026-09-28 (default)
 
