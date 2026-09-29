@@ -266,8 +266,7 @@ export class DefenseSimulation {
       if (!this.holding) { unit.shotTimer = Math.max(0, unit.shotTimer); unit.state = unit.shotFlash > 0 ? 'shoot' : unit.moving ? 'run' : 'idle'; continue; }
       unit.state = unit.shotFlash > 0 ? 'shoot' : unit.moving ? 'run' : 'idle';
       if (unit.shotTimer > 0) continue;
-      // No enemy or prop in range: still loose an arrow straight ahead (constant volleys).
-      const target = this.targets.select(unit) || this.propTarget(unit) || this.freeTarget(unit);
+      const target = this.targets.select(unit) || this.propTarget(unit);
       if (target && this.fireAt(unit, target)) {
         // The triple bow looses two more arrows at other targets.
         for (let extra = 1; extra < (WEAPON_KINDS[this.weapon]?.shots || 1); extra++) { const next = this.targets.select(unit) || target; this.fireAt(unit, next); }
@@ -299,10 +298,6 @@ export class DefenseSimulation {
     if (!WEAPON_KINDS[kind]) return;
     this.weapon = kind; for (const unit of this.army.units) this.army.applyWeapon(unit);
     this.callbacks.onWeapon?.(kind);
-  }
-  // Aim point for a shot with nothing to hit: straight ahead at the end of the bow's range.
-  freeTarget(unit) {
-    return { x: unit.x + ((unit.id * 7) % 5 - 2) * 0.12, z: unit.z + unit.range, alive: false, radius: 0.2, incomingDamage: 0, team: 'none', free: true };
   }
   propTarget(unit) {
     let best = null, bestZ = Infinity;

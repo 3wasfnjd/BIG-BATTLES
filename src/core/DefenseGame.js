@@ -133,7 +133,7 @@ export class DefenseGame {
 
     this.ui['defense-menu'].hidden = false;
     this.ui['load-status'].textContent = 'المس للبدء'; this.ui['load-line'].hidden = true;
-    this.ui.start.querySelector('.start-prompt > span').textContent = 'الرمي يبدأ من أول لمسة • اسحب يمينًا ويسارًا';
+    this.ui.start.querySelector('.start-prompt > span').textContent = 'اسحب يمينًا ويسارًا • احمِ القلعة';
     this.renderMenu();
     this.resize(); this.loop = new GameLoop(dt => this.sim.update(dt), (dt, raw) => this.render(dt, raw)); this.loop.start();
   }

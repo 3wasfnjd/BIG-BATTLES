@@ -194,13 +194,3 @@ test('volleys can be paused through the holding flag and resume at once', () => 
   sim.holding = true; for (let i = 0; i < 30; i++) sim.update(1 / 60);
   assert.ok(sim.projectiles.shots > 5, 'soldiers fire as soon as the player presses');
 });
-
-test('from the first tap soldiers keep firing even with nothing to hit', () => {
-  const sim = new DefenseSimulation({}, stage([{ t: 30, type: 'horde', count: 1, x: 0 }]));
-  sim.start(); for (let i = 0; i < 120; i++) sim.update(1 / 60);
-  assert.equal(sim.enemies.length, 0);
-  assert.ok(sim.projectiles.shots >= 10, `shots ${sim.projectiles.shots}`);
-  assert.equal(sim.kills, 0);
-  for (let i = 0; i < 120; i++) sim.update(1 / 60);
-  assert.ok(sim.projectiles.pool.active.length < 60, 'free arrows expire at the end of their flight');
-});
