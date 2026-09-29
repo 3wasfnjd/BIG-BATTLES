@@ -159,7 +159,8 @@ body.defense #hud .sound-toggle,body.defense #pause{width:40px;height:40px;font-
 /* BIG BATTLES poster start screen — visual only; gameplay remains unchanged. */
 #start{isolation:isolate;background:#101827}
 #start>.start-poster{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:#101827}
-#start>.start-poster .start-poster-grid{position:absolute;left:50%;top:50%;width:100%;aspect-ratio:2/3;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));transform:translate(-50%,-50%);font-size:0;line-height:0;direction:ltr}
+/* Fit the whole poster; its physical left/right tile order is independent of Arabic UI direction. */
+#start>.start-poster .start-poster-grid{position:absolute;left:50%;top:0;width:min(100%,calc(100vh * 2 / 3));width:min(100%,calc(100dvh * 2 / 3));aspect-ratio:2/3;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));transform:translateX(-50%);font-size:0;line-height:0;direction:ltr}
 #start>.start-poster .start-poster-grid img{display:block;width:100%;height:100%;min-width:0;min-height:0;object-fit:fill}
 #start>.start-poster .start-poster-grid img:nth-child(1){grid-column:1;grid-row:1}
 #start>.start-poster .start-poster-grid img:nth-child(2){grid-column:2;grid-row:1}
@@ -173,4 +174,3 @@ body.defense #hud .sound-toggle,body.defense #pause{width:40px;height:40px;font-
 #start::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,#07101b1f 0%,#07101b0a 42%,#07101ba8 100%)}
 #start>.brand,#start>.start-prompt{position:relative;z-index:2}
 #start>.brand{visibility:hidden}
-@media(max-aspect-ratio:2/3){#start>.start-poster .start-poster-grid{width:auto;height:100%;aspect-ratio:2/3}}
