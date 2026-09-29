@@ -186,7 +186,7 @@ test('giants and artillery abilities: charged by kills, then fight on the army\'
   assert.ok(sim.giantEnergy > 0 && sim.cannonEnergy > 0);
 });
 
-test('arrows fly only while the player holds the screen', () => {
+test('volleys can be paused through the holding flag and resume at once', () => {
   const sim = new DefenseSimulation({}, stage([{ t: 0, type: 'horde', count: 20, x: 0 }], { gruntHp: 1e6 }));
   sim.start(); sim.update(1 / 60); for (const u of sim.enemies) u.z = 10;
   sim.holding = false; for (let i = 0; i < 60; i++) sim.update(1 / 60);
